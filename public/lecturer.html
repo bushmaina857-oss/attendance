@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecturer attendance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+:root{--ink:#12343B;--ink2:#4B6A70;--bg:#EDF2F1;--card:#fff;--line:#D3DEDC;--amber:#E8A317;--ok:#1C7C54;--okbg:#E1F2E9;--bad:#B3402F;--badbg:#F9E5E1}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif}
+header.bar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 20px;background:var(--ink);color:#fff}
+header .brand{font-weight:700;font-size:18px}
+header .who{display:flex;align-items:center;gap:12px;font-size:14px}
+header .who button{font:inherit;font-size:14px;background:transparent;color:#fff;border:1.5px solid #fff;border-radius:8px;padding:4px 12px;cursor:pointer;min-height:34px}
+main{max-width:980px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:28px;line-height:1.2;margin:0 0 4px}
+h2{font-size:20px;margin:0 0 12px}
+a{color:var(--ink)}
+.muted{color:var(--ink2);margin:0}
+.back{display:inline-block;margin-bottom:12px;font-size:15px}
+.head{margin-bottom:20px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:20px}
+.narrow{max-width:420px;margin:48px auto}
+.stack{display:grid;gap:14px}
+label{display:grid;gap:6px;font-weight:700;font-size:15px}
+input,select{font:inherit;font-weight:400;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);min-height:44px;min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.btn{font:inherit;font-weight:700;padding:10px 18px;border-radius:10px;border:2px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;min-height:44px}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.danger{background:var(--bad);border-color:var(--bad)}
+.btn.small{min-height:34px;padding:4px 12px;font-size:14px;border-radius:8px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+.row>label{flex:1 1 180px}
+.list .item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 4px;border-top:1px solid var(--line);color:inherit;text-decoration:none}
+.list .item:first-child{border-top:0}
+.list .item:hover{background:#F5F8F7}
+.item b{display:block}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:14px;font-weight:700;white-space:nowrap}
+.badge.ok{background:var(--okbg);color:var(--ok)}
+.badge.bad{background:var(--badbg);color:var(--bad)}
+.badge.idle{background:var(--line);color:var(--ink2)}
+.note{font-size:14px;color:var(--ink2);margin:6px 0 0}
+.closedstrip{background:var(--badbg);color:var(--bad);font-weight:700;border-radius:12px;padding:12px 16px;margin-bottom:20px}
+
+/* the projected screen */
+.stage{display:grid;grid-template-columns:minmax(260px,420px) 1fr;gap:32px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px;margin-bottom:20px}
+.qr svg{width:100%;height:auto;display:block;border-radius:8px}
+.qr:empty{aspect-ratio:1;background:var(--bg);border-radius:8px}
+.bar{height:8px;background:var(--line);border-radius:99px;margin:14px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:var(--amber)}
+.big{font-size:clamp(56px,10vw,104px);font-weight:700;line-height:1;margin:0}
+.bigl{font-size:20px;margin:4px 0 20px}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.stage:fullscreen{background:var(--bg);border-radius:0;border:0;padding:4vh 4vw;grid-template-columns:minmax(0,75vh) auto;justify-content:center;gap:6vw}
+.stage:fullscreen .big{font-size:20vh}
+.stage:fullscreen .bigl{font-size:4vh}
+.stage:fullscreen .actions,.stage:fullscreen .tip{display:none}
+@media(max-width:720px){.stage{grid-template-columns:1fr;gap:20px}}
+
+.summary{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.tools{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.tools input{flex:1 1 200px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:14px;color:var(--ink2);padding:8px;border-bottom:2px solid var(--line);white-space:nowrap}
+td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+td small{display:block;color:var(--ink2)}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;max-width:90vw;z-index:10}
+#toast.bad{background:var(--bad)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="bar"><span class="brand">Attendance</span><span class="who" id="who"></span></header>
+<main id="app"></main>
+<div id="toast" hidden role="status"></div>
+
+<script>
+/* ---------- config ---------- */
+const SUPABASE_URL = 'https://ghbjubthwxrvifnpmdit.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoYmp1YnRod3hydmlmbnBtZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0OTI2ODMsImV4cCI6MjEwNzA2ODY4M30.kwl_bi14TjPqgH1MsRE3JzH_Ws7ubPGbgIjeKjZFppg';
+const ROTATE_MS = 15000;      // a new QR token every 15 seconds
+const POLL_MS = 4000;         // refresh the attendance list every 4 seconds
+const STUDENT_PAGE = 'student.html'; // must sit in the same folder as this file
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const app = $('#app');
+const KIND = { lecture: 'Lecture', td: 'TD', tp: 'TP' };
+const fmtDate = x => new Date(x).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+const fmtTime = x => new Date(x).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+let timers = [], raf = 0, routeId = 0, uid = null, wake = null;
+const every = (fn, ms) => { const t = setInterval(fn, ms); timers.push(t); return t; };
+function stopAll() {
+  timers.forEach(clearInterval); timers = [];
+  cancelAnimationFrame(raf);
+  if (wake) { wake.release().catch(() => {}); wake = null; }
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+}
+let toastT;
+function toast(msg, bad) {
+  const t = $('#toast'); t.textContent = msg; t.className = bad ? 'bad' : ''; t.hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, bad ? 6000 : 3500);
+}
+const sessionMeta = s => [KIND[s.kind], s.section && 'Section ' + s.section, s.group_name && 'Group ' + s.group_name, fmtDate(s.started_at)].filter(Boolean).join(', ');
+
+/* ---------- routing ---------- */
+async function route() {
+  stopAll();
+  const my = ++routeId;
+  const { data: { session } } = await sb.auth.getSession();
+  if (my !== routeId) return;
+  uid = session?.user?.id || null;
+  $('#who').innerHTML = session ? `<span>${esc(session.user.email)}</span><button id="out">Sign out</button>` : '';
+  if (session) $('#out').onclick = () => sb.auth.signOut();
+  if (!session) return viewLogin();
+  const [, page, id] = location.hash.slice(1).split('/');
+  if (page === 'course') return viewCourse(id, my);
+  if (page === 'session') return viewSession(id, my);
+  return viewHome(my);
+}
+let rt; const go = () => { clearTimeout(rt); rt = setTimeout(route, 0); };
+window.addEventListener('hashchange', go);
+sb.auth.onAuthStateChange((ev, s) => { if ((s?.user?.id || null) !== uid) go(); });
+go();
+
+/* ---------- sign in ---------- */
+function viewLogin() {
+  app.innerHTML = `<section class="panel narrow"><h1>Sign in</h1>
+    <p class="muted" style="margin-bottom:16px">Enter your email. We'll send you a code to sign in.</p>
+    <form id="f1" class="stack"><label>Email<input id="em" type="email" required autocomplete="email"></label>
+    <button class="btn">Send code</button></form></section>`;
+  $('#f1').onsubmit = async e => {
+    e.preventDefault();
+    const email = $('#em').value.trim().toLowerCase(), b = $('#f1 button');
+    b.disabled = true;
+    const { error } = await sb.auth.signInWithOtp({ email });
+    b.disabled = false;
+    if (error) return toast('Could not send the code: ' + error.message, true);
+    askCode(email);
+  };
+}
+function askCode(email) {
+  app.innerHTML = `<section class="panel narrow"><h1>Enter your code</h1>
+    <p class="muted" style="margin-bottom:16px">We sent a code to ${esc(email)}. It can take a minute to arrive.</p>
+    <form id="f2" class="stack"><label>Code<input id="cd" inputmode="numeric" autocomplete="one-time-code" required></label>
+    <button class="btn">Sign in</button><button type="button" id="back" class="btn ghost">Use a different email</button></form></section>`;
+  $('#back').onclick = viewLogin;
+  $('#f2').onsubmit = async e => {
+    e.preventDefault();
+    const { error } = await sb.auth.verifyOtp({ email, token: $('#cd').value.trim(), type: 'email' });
+    if (error) toast('That code did not work. Check it and try again, or request a new one.', true);
+  };
+}
+
+/* ---------- home: courses ---------- */
+async function viewHome(my) {
+  app.innerHTML = '<p class="muted">Loading…</p>';
+  const { data, error } = await sb.from('courses').select('id,code,name').order('created_at', { ascending: false });
+  if (my !== routeId) return;
+  if (error) { app.innerHTML = `<p>Could not load your courses: ${esc(error.message)}</p>`; return; }
+  app.innerHTML = `<div class="head"><h1>Your courses</h1></div>
+    <section class="panel">${data.length ? `<div class="list">${data.map(c => `
+      <a class="item" href="#/course/${c.id}"><span><b>${esc(c.name)}</b>${c.code ? `<span class="muted">${esc(c.code)}</span>` : ''}</span><span aria-hidden="true">Open</span></a>`).join('')}</div>`
+      : '<p class="muted">No courses yet. Add your first one below.</p>'}</section>
+    <section class="panel"><h2>Add a course</h2>
+      <form id="nc" class="row"><label>Course name<input id="cn" required placeholder="e.g. Anatomy"></label>
+      <label>Code (optional)<input id="cc" placeholder="e.g. ANAT1"></label><button class="btn">Add course</button></form></section>`;
+  $('#nc').onsubmit = async e => {
+    e.preventDefault();
+    const { error } = await sb.from('courses').insert({ name: $('#cn').value.trim(), code: $('#cc').value.trim() || null });
+    if (error) return toast('Could not add the course: ' + error.message, true);
+    go();
+  };
+}
+
+/* ---------- CSV ---------- */
+function parseCSV(text) {
+  text = text.replace(/^\uFEFF/, '');
+  const first = text.split(/\r?\n/)[0] || '';
+  const d = first.split(';').length > first.split(',').length ? ';' : ',';   // French Excel uses ;
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === d) { row.push(cur); cur = ''; }
+    else if (c === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+    else if (c !== '\r') cur += c;
+  }
+  if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim() !== ''));
+}
+const norm = h => h.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s-]+/g, '_');
+const ALIASES = {
+  surname: ['surname', 'nom', 'last_name', 'family_name'],
+  first_name: ['first_name', 'prenom', 'firstname'],
+  second_name: ['second_name', 'middle_name'],
+  student_number: ['student_number', 'number', 'matricule', 'student_id'],
+  email: ['email', 'e_mail', 'mail', 'email_address'],
+  section: ['section'],
+  group_name: ['group', 'groupe', 'group_name']
+};
+function toEnrollments(rows, courseId) {
+  const head = rows[0].map(norm), idx = {};
+  for (const k in ALIASES) idx[k] = head.findIndex(h => ALIASES[k].includes(h));
+  const missing = ['surname', 'first_name', 'email'].filter(k => idx[k] < 0);
+  if (missing.length) return { error: 'Missing column(s): ' + missing.join(', ') + '. Check the first row of your file.' };
+  const map = new Map(); let skipped = 0;
+  for (const r of rows.slice(1)) {
+    const v = k => (idx[k] >= 0 ? (r[idx[k]] || '').trim() : '') || null;
+    const email = (v('email') || '').toLowerCase();
+    if (!v('surname') || !v('first_name') || !/^\S+@\S+\.\S+$/.test(email)) { skipped++; continue; }
+    map.set(email, { course_id: courseId, student_email: email, surname: v('surname'), first_name: v('first_name'),
+      second_name: v('second_name'), student_number: v('student_number'), section: v('section'), group_name: v('group_name') });
+  }
+  return { items: [...map.values()], skipped };
+}
+function download(name, text, type = 'text/csv;charset=utf-8') {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ---------- course ---------- */
+async function viewCourse(id, my) {
+  app.innerHTML = '<p class="muted">Loading…</p>';
+  const [c, e, s] = await Promise.all([
+    sb.from('courses').select('id,code,name').eq('id', id).single(),
+    sb.from('enrollments').select('section,group_name', { count: 'exact' }).eq('course_id', id).range(0, 4999),
+    sb.from('sessions').select('id,title,kind,section,group_name,started_at,closed_at').eq('course_id', id).order('started_at', { ascending: false }).limit(30)
+  ]);
+  if (my !== routeId) return;
+  if (c.error || !c.data) { app.innerHTML = '<p>Course not found. <a href="#/">Back to your courses</a></p>'; return; }
+  const total = e.count || 0;
+  const uniq = k => [...new Set((e.data || []).map(r => r[k]).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const sections = uniq('section'), groups = uniq('group_name');
+  const opts = (arr, all) => `<option value="">${all}</option>` + arr.map(x => `<option>${esc(x)}</option>`).join('');
+  const sess = s.data || [];
+
+  app.innerHTML = `<a class="back" href="#/">Your courses</a>
+    <div class="head"><h1>${esc(c.data.name)}</h1>${c.data.code ? `<p class="muted">${esc(c.data.code)}</p>` : ''}</div>
+
+    <section class="panel"><h2>Start attendance</h2>
+      <form id="start" class="stack">
+        <div class="row"><label>Title<input id="ttl" placeholder="e.g. Lecture 12"></label>
+        <label>Type<select id="kind"><option value="lecture">Lecture</option><option value="td">TD</option><option value="tp">TP</option></select></label></div>
+        <div class="row" id="grp" hidden><label>Section<select id="sec">${opts(sections, 'All sections')}</select></label>
+        <label>Group<select id="gro">${opts(groups, 'All groups')}</select></label></div>
+        <button class="btn" ${total ? '' : 'disabled'}>Start attendance</button>
+        ${total ? '' : '<p class="note">Upload your class list first.</p>'}
+      </form></section>
+
+    <section class="panel"><h2>Class list</h2>
+      <p class="muted" style="margin-bottom:12px">${total ? `${total} students${groups.length ? `, ${groups.length} groups` : ''}` : 'No students yet.'}</p>
+      <div class="row"><label>Upload a CSV file<input id="csv" type="file" accept=".csv,text/csv"></label>
+      <button class="btn ghost" id="tpl" type="button">Download template</button></div>
+      <p class="note">Columns: surname, first_name, second_name, student_number, email, section, group. Uploading again updates existing students.</p></section>
+
+    <section class="panel"><h2>Past sessions</h2>${sess.length ? `<div class="list">${sess.map(x => `
+      <a class="item" href="#/session/${x.id}"><span><b>${esc(x.title || KIND[x.kind])}</b><span class="muted">${esc(sessionMeta(x))}</span></span>
+      <span class="badge ${x.closed_at ? 'idle' : 'ok'}">${x.closed_at ? 'Closed' : 'Open'}</span></a>`).join('')}</div>`
+      : '<p class="muted">No sessions yet. Start one above when your class begins.</p>'}</section>`;
+
+  $('#kind').onchange = () => { $('#grp').hidden = $('#kind').value === 'lecture'; };
+  $('#tpl').onclick = () => download('class_list_template.csv',
+    '\uFEFFsurname,first_name,second_name,student_number,email,section,group\r\nBenali,Amine,Yacine,2026001,amine.benali@example.edu,A,1\r\n');
+  $('#start').onsubmit = async ev => {
+    ev.preventDefault();
+    const kind = $('#kind').value, b = $('#start button'); b.disabled = true;
+    const { data, error } = await sb.from('sessions').insert({
+      course_id: id, title: $('#ttl').value.trim() || KIND[kind], kind,
+      section: kind === 'lecture' ? null : $('#sec').value || null,
+      group_name: kind === 'lecture' ? null : $('#gro').value || null
+    }).select('id').single();
+    if (error) { b.disabled = false; return toast('Could not start attendance: ' + error.message, true); }
+    location.hash = '#/session/' + data.id;
+  };
+  $('#csv').onchange = async ev => {
+    const f = ev.target.files[0]; if (!f) return;
+    const rows = parseCSV(await f.text());
+    if (rows.length < 2) return toast('That file has no student rows.', true);
+    const r = toEnrollments(rows, id);
+    if (r.error) return toast(r.error, true);
+    for (let i = 0; i < r.items.length; i += 200) {
+      const { error } = await sb.from('enrollments').upsert(r.items.slice(i, i + 200), { onConflict: 'course_id,student_email' });
+      if (error) return toast('Upload failed: ' + error.message, true);
+    }
+    toast(`Imported ${r.items.length} students.` + (r.skipped ? ` Skipped ${r.skipped} rows with a missing name or invalid email.` : ''));
+    go();
+  };
+}
+
+/* ---------- session ---------- */
+function qrSvg(text) {
+  const q = qrcode(0, 'M'); q.addData(text); q.make();
+  const n = q.getModuleCount(), m = 3; let d = '';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += `M${c} ${r}h1v1h-1z`;
+  return `<svg viewBox="${-m} ${-m} ${n + 2 * m} ${n + 2 * m}" shape-rendering="crispEdges" role="img" aria-label="Attendance QR code">
+    <rect x="${-m}" y="${-m}" width="${n + 2 * m}" height="${n + 2 * m}" fill="#fff"/><path d="${d}" fill="#12343B"/></svg>`;
+}
+const cell = v => { v = String(v ?? ''); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+
+async function viewSession(id, my) {
+  app.innerHTML = '<p class="muted">Loading…</p>';
+  const { data: s, error } = await sb.from('sessions')
+    .select('id,title,kind,section,group_name,started_at,closed_at,course_id,courses(name,code)').eq('id', id).single();
+  if (my !== routeId) return;
+  if (error || !s) { app.innerHTML = '<p>Session not found. <a href="#/">Back to your courses</a></p>'; return; }
+  const open = !s.closed_at;
+
+  app.innerHTML = `<a class="back" href="#/course/${s.course_id}">${esc(s.courses?.name || 'Course')}</a>
+    <div class="head"><h1>${esc(s.title || KIND[s.kind])}</h1><p class="muted">${esc(sessionMeta(s))}</p></div>
+    ${open ? '' : `<div class="closedstrip">Attendance closed at ${fmtTime(s.closed_at)}. You can still mark students present below.</div>`}
+    <section class="stage" id="stage" ${open ? '' : 'hidden'}>
+      <div class="qrcol"><div class="qr" id="qr"></div><div class="bar"><i id="fill"></i></div><p class="muted" id="cd" style="text-align:center">Preparing code…</p></div>
+      <div><p class="big" id="big">0</p><p class="bigl" id="bigl">checked in</p>
+        <div class="actions"><button class="btn ghost" id="fs">Show full screen</button><button class="btn danger" id="close">Close attendance</button></div>
+        <p class="note tip">Students scan this code with their phone camera. It changes every ${ROTATE_MS / 1000} seconds, so a screenshot stops working quickly.</p></div>
+    </section>
+    <section class="panel"><h2>Attendance list</h2>
+      <div class="summary" id="sum"></div>
+      <div class="tools"><input id="q" type="search" placeholder="Search by name or number" aria-label="Search students">
+        <select id="flt" aria-label="Filter by status"><option value="all">Everyone</option><option value="present">Present</option><option value="absent">Absent</option></select>
+        <button class="btn ghost" id="exp">Export CSV</button></div>
+      <div class="tablewrap"><table><thead><tr><th>Student</th><th>Group</th><th>Status</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+    </section>`;
+
+  /* roster */
+  let roster = [], filter = 'all', query = '';
+  const paint = () => {
+    const total = roster.length, present = roster.filter(r => r.status !== 'absent').length;
+    $('#sum').innerHTML = `<span class="badge ok">${present} present</span><span class="badge bad">${total - present} absent</span><span class="muted">${total} expected</span>`;
+    if (open) { $('#big').textContent = present; $('#bigl').textContent = `checked in of ${total}`; }
+    const q = query.toLowerCase();
+    const list = roster.filter(r => (filter === 'all' || (filter === 'absent') === (r.status === 'absent'))
+      && (!q || `${r.surname} ${r.first_name} ${r.second_name || ''} ${r.student_number || ''}`.toLowerCase().includes(q)));
+    $('#rows').innerHTML = list.length ? list.map(r => {
+      const here = r.status !== 'absent';
+      return `<tr><td><b>${esc(r.surname)}</b> ${esc(r.first_name)} ${esc(r.second_name || '')}${r.student_number ? `<small>${esc(r.student_number)}</small>` : ''}</td>
+        <td>${esc([r.section, r.group_name].filter(Boolean).join(' / '))}</td>
+        <td><span class="badge ${here ? 'ok' : 'bad'}">${here ? 'Present' : 'Absent'}</span>${here ? `<small>${fmtTime(r.checked_at)}${r.method === 'manual' ? ', marked by lecturer' : ''}</small>` : ''}</td>
+        <td>${here ? '' : `<button class="btn small ghost" data-mark="${esc(r.student_email)}">Mark present</button>`}</td></tr>`;
+    }).join('') : '<tr><td colspan="4" class="muted">No students match.</td></tr>';
+  };
+  const loadRoster = async () => {
+    const { data, error } = await sb.rpc('session_roster', { p_session: id });
+    if (my !== routeId || error) return;
+    roster = data || []; paint();
+  };
+  $('#q').oninput = e => { query = e.target.value; paint(); };
+  $('#flt').onchange = e => { filter = e.target.value; paint(); };
+  $('#rows').onclick = async e => {
+    const em = e.target.dataset.mark; if (!em) return;
+    e.target.disabled = true;
+    const { error } = await sb.rpc('mark_present', { p_session: id, p_email: em });
+    if (error) { e.target.disabled = false; return toast('Could not mark present: ' + error.message, true); }
+    loadRoster();
+  };
+  $('#exp').onclick = () => {
+    const head = ['Surname', 'First name', 'Second name', 'Student number', 'Section', 'Group', 'Status', 'Time', 'Method'];
+    const rows = roster.map(r => [r.surname, r.first_name, r.second_name, r.student_number, r.section, r.group_name,
+      r.status, r.checked_at ? fmtTime(r.checked_at) : '', r.method || '']);
+    const csv = '\uFEFF' + [head, ...rows].map(r => r.map(cell).join(';')).join('\r\n');
+    const name = `${s.courses?.name || 'course'}_${s.title || s.kind}_${s.started_at.slice(0, 10)}.csv`.replace(/[^\w.-]+/g, '_');
+    download(name, csv);
+  };
+  await loadRoster();
+  if (!open) return;
+  every(loadRoster, POLL_MS);
+
+  /* rotating QR */
+  let lastRot = 0, lastTry = 0, rotating = false;
+  const rotate = async () => {
+    rotating = true;
+    const { data, error } = await sb.rpc('new_token', { p_session: id });
+    rotating = false;
+    if (my !== routeId) return;
+    if (error) { $('#cd').textContent = 'Connection problem. Retrying…'; return; }
+    const url = new URL(STUDENT_PAGE, location.href); url.searchParams.set('t', data);
+    $('#qr').innerHTML = qrSvg(url.href);
+    lastRot = Date.now();
+  };
+  every(() => {
+    const now = Date.now();
+    if (!rotating && now - lastRot >= ROTATE_MS && now - lastTry >= 3000) { lastTry = now; rotate(); }
+  }, 500);
+  let lastSec = -1;
+  const frame = () => {
+    const rem = lastRot ? Math.max(0, ROTATE_MS - (Date.now() - lastRot)) : ROTATE_MS;
+    $('#fill').style.width = (rem / ROTATE_MS * 100) + '%';
+    const sec = Math.ceil(rem / 1000);
+    if (lastRot && sec !== lastSec) { lastSec = sec; $('#cd').textContent = `New code in ${sec}s`; }
+    raf = requestAnimationFrame(frame);
+  };
+  frame();
+
+  /* controls */
+  $('#fs').onclick = () => document.fullscreenElement ? document.exitFullscreen() : $('#stage').requestFullscreen().catch(() => toast('Full screen is not available in this browser.', true));
+  $('#close').onclick = async () => {
+    if (!confirm('Close attendance? Students will no longer be able to check in.')) return;
+    const { error } = await sb.rpc('close_session', { p_session: id });
+    if (error) return toast('Could not close: ' + error.message, true);
+    go();
+  };
+  /* keep the lecturer's screen awake while the code is showing */
+  const lock = async () => { try { wake = await navigator.wakeLock?.request('screen'); } catch (_) {} };
+  lock();
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && routeId === my) lock(); });
+}
+</script>
+</body>
+</html>
