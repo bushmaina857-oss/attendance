@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{--ink:#12343B;--ink2:#4B6A70;--bg:#EDF2F1;--card:#fff;--line:#D3DEDC;--amber:#E8A317;--ok:#1C7C54;--okbg:#E1F2E9;--bad:#B3402F;--badbg:#F9E5E1}
 *{box-sizing:border-box}
@@ -202,7 +203,7 @@ function parseCSV(text) {
   if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
   return rows.filter(r => r.some(x => x.trim() !== ''));
 }
-const norm = h => h.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s-]+/g, '_');
+const norm = h => String(h).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s-]+/g, '_');
 const ALIASES = {
   surname: ['surname', 'nom', 'last_name', 'family_name'],
   first_name: ['first_name', 'prenom', 'firstname'],
@@ -219,13 +220,21 @@ function toEnrollments(rows, courseId) {
   if (missing.length) return { error: 'Missing column(s): ' + missing.join(', ') + '. Check the first row of your file.' };
   const map = new Map(); let skipped = 0;
   for (const r of rows.slice(1)) {
-    const v = k => (idx[k] >= 0 ? (r[idx[k]] || '').trim() : '') || null;
+    const v = k => (idx[k] >= 0 ? String(r[idx[k]] ?? '').trim() : '') || null;
     const email = (v('email') || '').toLowerCase();
     if (!v('surname') || !v('first_name') || !/^\S+@\S+\.\S+$/.test(email)) { skipped++; continue; }
     map.set(email, { course_id: courseId, student_email: email, surname: v('surname'), first_name: v('first_name'),
       second_name: v('second_name'), student_number: v('student_number'), section: v('section'), group_name: v('group_name') });
   }
   return { items: [...map.values()], skipped };
+}
+async function readTable(f) {
+  if (/\.(xlsx|xls)$/i.test(f.name)) {
+    const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: '' });
+    return rows.filter(r => r.some(x => String(x).trim() !== ''));
+  }
+  return parseCSV(await f.text());
 }
 function download(name, text, type = 'text/csv;charset=utf-8') {
   const a = document.createElement('a');
@@ -264,9 +273,10 @@ async function viewCourse(id, my) {
 
     <section class="panel"><h2>Class list</h2>
       <p class="muted" style="margin-bottom:12px">${total ? `${total} students${groups.length ? `, ${groups.length} groups` : ''}` : 'No students yet.'}</p>
-      <div class="row"><label>Upload a CSV file<input id="csv" type="file" accept=".csv,text/csv"></label>
+      <div class="row"><label>Upload your class list (Excel or CSV)<input id="csv" type="file" accept=".xlsx,.xls,.csv,text/csv"></label>
       <button class="btn ghost" id="tpl" type="button">Download template</button></div>
-      <p class="note">Columns: surname, first_name, second_name, student_number, email, section, group. Uploading again updates existing students.</p></section>
+      <p class="note">Columns: surname, first_name, second_name, student_number, email, section, group. Uploading again updates existing students.</p>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:10px"><input id="rep" type="checkbox" style="width:auto;min-height:0"> Replace the whole list instead of updating it</label></section>
 
     <section class="panel"><h2>Past sessions</h2>${sess.length ? `<div class="list">${sess.map(x => `
       <a class="item" href="#/session/${x.id}"><span><b>${esc(x.title || KIND[x.kind])}</b><span class="muted">${esc(sessionMeta(x))}</span></span>
@@ -289,10 +299,17 @@ async function viewCourse(id, my) {
   };
   $('#csv').onchange = async ev => {
     const f = ev.target.files[0]; if (!f) return;
-    const rows = parseCSV(await f.text());
+    if (/\.pdf$/i.test(f.name)) return toast('That is a PDF. Open it in Excel, save it as .xlsx or .csv, and upload that file.', true);
+    let rows;
+    try { rows = await readTable(f); } catch (_) { return toast('Could not read that file. Use an Excel (.xlsx) or CSV file.', true); }
     if (rows.length < 2) return toast('That file has no student rows.', true);
     const r = toEnrollments(rows, id);
     if (r.error) return toast(r.error, true);
+    if ($('#rep').checked) {
+      if (!confirm(`Replace the whole class list with these ${r.items.length} students?`)) return;
+      const del = await sb.from('enrollments').delete().eq('course_id', id);
+      if (del.error) return toast('Could not clear the old list: ' + del.error.message, true);
+    }
     for (let i = 0; i < r.items.length; i += 200) {
       const { error } = await sb.from('enrollments').upsert(r.items.slice(i, i + 200), { onConflict: 'course_id,student_email' });
       if (error) return toast('Upload failed: ' + error.message, true);
@@ -333,7 +350,7 @@ async function viewSession(id, my) {
       <div class="summary" id="sum"></div>
       <div class="tools"><input id="q" type="search" placeholder="Search by name or number" aria-label="Search students">
         <select id="flt" aria-label="Filter by status"><option value="all">Everyone</option><option value="present">Present</option><option value="absent">Absent</option></select>
-        <button class="btn ghost" id="exp">Export CSV</button></div>
+        <button class="btn ghost" id="exp">Export Excel</button><button class="btn ghost" id="expcsv">CSV</button></div>
       <div class="tablewrap"><table><thead><tr><th>Student</th><th>Group</th><th>Status</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
     </section>`;
 
@@ -368,14 +385,21 @@ async function viewSession(id, my) {
     if (error) { e.target.disabled = false; return toast('Could not mark present: ' + error.message, true); }
     loadRoster();
   };
-  $('#exp').onclick = () => {
+  const sheet = () => {
     const head = ['Surname', 'First name', 'Second name', 'Student number', 'Section', 'Group', 'Status', 'Time', 'Method'];
-    const rows = roster.map(r => [r.surname, r.first_name, r.second_name, r.student_number, r.section, r.group_name,
-      r.status, r.checked_at ? fmtTime(r.checked_at) : '', r.method || '']);
-    const csv = '\uFEFF' + [head, ...rows].map(r => r.map(cell).join(';')).join('\r\n');
-    const name = `${s.courses?.name || 'course'}_${s.title || s.kind}_${s.started_at.slice(0, 10)}.csv`.replace(/[^\w.-]+/g, '_');
-    download(name, csv);
+    const rows = roster.map(r => [r.surname, r.first_name, r.second_name || '', r.student_number || '', r.section || '', r.group_name || '',
+      r.status === 'absent' ? 'Absent' : 'Present', r.checked_at ? fmtTime(r.checked_at) : '',
+      r.method === 'manual' ? 'Marked by lecturer' : r.method === 'qr' ? 'QR' : '']);
+    return [head, ...rows];
   };
+  const base = () => `${s.courses?.name || 'course'}_${s.title || s.kind}_${s.started_at.slice(0, 10)}`.replace(/[^\w.-]+/g, '_');
+  $('#exp').onclick = () => {
+    const ws = XLSX.utils.aoa_to_sheet(sheet());
+    ws['!cols'] = [18, 16, 16, 18, 9, 8, 10, 8, 18].map(w => ({ wch: w }));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
+    XLSX.writeFile(wb, base() + '.xlsx');
+  };
+  $('#expcsv').onclick = () => download(base() + '.csv', '\uFEFF' + sheet().map(r => r.map(cell).join(';')).join('\r\n'));
   await loadRoster();
   if (!open) return;
   every(loadRoster, POLL_MS);
