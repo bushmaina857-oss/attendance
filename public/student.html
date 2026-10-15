@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Check in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--ink:#12343B;--ink2:#4B6A70;--bg:#EDF2F1;--card:#fff;--line:#D3DEDC;--amber:#E8A317;--ok:#1C7C54;--okbg:#E1F2E9;--bad:#B3402F;--badbg:#F9E5E1;--warn:#8A5A00;--warnbg:#FBEFD2}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:17px/1.5 'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;background:var(--ink);color:#fff}
+header b{font-size:18px}
+header button{font:inherit;font-size:14px;background:transparent;color:#fff;border:1.5px solid #fff;border-radius:8px;padding:4px 12px;min-height:34px;cursor:pointer}
+main{max-width:460px;margin:0 auto;padding:20px 16px 48px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px}
+.center{text-align:center}
+h1{font-size:26px;line-height:1.2;margin:0 0 8px}
+p{margin:0 0 12px}
+.muted{color:var(--ink2)}
+.stack{display:grid;gap:14px;margin-top:16px}
+label{display:grid;gap:6px;font-weight:700;font-size:16px}
+input{font:inherit;font-weight:400;padding:12px;border:1.5px solid var(--line);border-radius:10px;min-height:48px;width:100%;color:var(--ink);background:#fff}
+input:focus-visible,button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.code{font-size:28px;letter-spacing:.2em;text-align:center}
+.btn{font:inherit;font-weight:700;padding:12px 18px;border-radius:12px;border:2px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;min-height:48px;width:100%}
+.btn.ghost{background:transparent;color:var(--ink)}
+.icon{width:84px;height:84px;margin:4px auto 16px;display:block}
+.result.ok{background:var(--okbg);border-color:var(--ok)}
+.result.bad{background:var(--badbg);border-color:var(--bad)}
+.result.warn{background:var(--warnbg);border-color:var(--amber)}
+.result.ok h1{color:var(--ok)}.result.bad h1{color:var(--bad)}.result.warn h1{color:var(--warn)}
+.when{font-weight:700;margin-top:8px}
+.spin{width:44px;height:44px;border:5px solid var(--line);border-top-color:var(--ink);border-radius:50%;margin:8px auto 16px;animation:s 1s linear infinite}
+@keyframes s{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--bad);color:#fff;padding:12px 18px;border-radius:12px;max-width:90vw}
+</style>
+</head>
+<body>
+<header><b>Attendance</b><span id="who"></span></header>
+<main id="app"></main>
+<div id="toast" hidden role="status"></div>
+
+<script>
+const SUPABASE_URL = 'https://ghbjubthwxrvifnpmdit.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoYmp1YnRod3hydmlmbnBtZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0OTI2ODMsImV4cCI6MjEwNzA2ODY4M30.kwl_bi14TjPqgH1MsRE3JzH_Ws7ubPGbgIjeKjZFppg';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const app = $('#app');
+let token = new URLSearchParams(location.search).get('t');   // from the scanned QR
+let uid = null, running = false, again = false;
+
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 6000);
+}
+
+const ICONS = {
+  ok: '<svg class="icon" viewBox="0 0 84 84" role="img" aria-label="Success"><circle cx="42" cy="42" r="40" fill="#1C7C54"/><path d="M24 43l13 13 24-27" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  bad: '<svg class="icon" viewBox="0 0 84 84" role="img" aria-label="Problem"><circle cx="42" cy="42" r="40" fill="#B3402F"/><path d="M28 28l28 28M56 28L28 56" stroke="#fff" stroke-width="7" stroke-linecap="round"/></svg>',
+  warn: '<svg class="icon" viewBox="0 0 84 84" role="img" aria-label="Notice"><circle cx="42" cy="42" r="40" fill="#E8A317"/><path d="M42 24v24" stroke="#12343B" stroke-width="7" stroke-linecap="round"/><circle cx="42" cy="59" r="4.5" fill="#12343B"/></svg>'
+};
+
+/* ---------- flow ---------- */
+async function step() {
+  const { data: { session } } = await sb.auth.getSession();
+  uid = session?.user?.id || null;
+  $('#who').innerHTML = session ? '<button id="out">Sign out</button>' : '';
+  if (session) $('#out').onclick = () => sb.auth.signOut();
+  if (!session) return viewLogin();
+  if (token) {
+    const t = token; token = null;
+    history.replaceState(null, '', location.pathname);   // a reload must not re-submit the code
+    return checkIn(t, session);
+  }
+  return viewReady(session);
+}
+async function run() {
+  if (running) { again = true; return; }
+  running = true;
+  do { again = false; await step(); } while (again);
+  running = false;
+}
+sb.auth.onAuthStateChange((ev, s) => { if ((s?.user?.id || null) !== uid) run(); });
+run();
+
+/* ---------- screens ---------- */
+function viewLogin() {
+  app.innerHTML = `<section class="card"><h1>Sign in</h1>
+    <p class="muted">${token ? 'Sign in once, then scan the code on the screen again to check in.' : 'Use the university email your lecturer has on the class list.'}</p>
+    <form id="f1" class="stack"><label>University email<input id="em" type="email" required autocomplete="email" inputmode="email"></label>
+    <button class="btn">Send code</button></form></section>`;
+  $('#f1').onsubmit = async e => {
+    e.preventDefault();
+    const email = $('#em').value.trim().toLowerCase(), b = $('#f1 button');
+    b.disabled = true;
+    const { error } = await sb.auth.signInWithOtp({ email });
+    b.disabled = false;
+    if (error) return toast('Could not send the code: ' + error.message);
+    askCode(email);
+  };
+}
+function askCode(email) {
+  app.innerHTML = `<section class="card"><h1>Enter your code</h1>
+    <p class="muted">We sent a code to ${esc(email)}. It can take a minute to arrive. Check your spam folder if you don't see it.</p>
+    <form id="f2" class="stack"><label>Code<input id="cd" class="code" inputmode="numeric" autocomplete="one-time-code" required></label>
+    <button class="btn">Sign in</button><button type="button" id="back" class="btn ghost">Use a different email</button></form></section>`;
+  $('#back').onclick = viewLogin;
+  $('#f2').onsubmit = async e => {
+    e.preventDefault();
+    const { error } = await sb.auth.verifyOtp({ email, token: $('#cd').value.trim(), type: 'email' });
+    if (error) toast('That code did not work. Check it, or go back and request a new one.');
+  };
+}
+function viewReady(session) {
+  app.innerHTML = `<section class="card center">${ICONS.ok}<h1>You're signed in</h1>
+    <p>${esc(session.user.email)}</p>
+    <p class="muted">To check in, scan the QR code on your lecturer's screen with your phone's camera. You won't need to sign in again on this phone.</p></section>`;
+}
+function viewResult(kind, title, detail, extra = '') {
+  app.innerHTML = `<section class="card center result ${kind}">${ICONS[kind]}<h1>${esc(title)}</h1><p>${esc(detail)}</p>${extra}</section>`;
+}
+
+async function checkIn(t, session) {
+  app.innerHTML = '<section class="card center"><div class="spin"></div><p>Checking in…</p></section>';
+  const { data, error } = await sb.rpc('check_in', { p_token: t });
+  if (error) {
+    viewResult('warn', 'Could not check in', 'There was a connection problem. Check your internet and try again.', '<button class="btn" id="retry" style="margin-top:12px">Try again</button>');
+    $('#retry').onclick = () => checkIn(t, session);
+    return;
+  }
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (data === 'ok') return viewResult('ok', 'Attendance recorded', session.user.email, `<p class="when">${time}</p>`);
+  if (data === 'wrong_group') return viewResult('bad', 'Wrong group', 'This session is for a different section or group. Check that you scanned the right screen.');
+  if (data === 'not_enrolled') return viewResult('bad', "You're not on this class list", `Your email (${session.user.email}) isn't on the list for this course. Tell your lecturer, who can mark you present.`);
+  return viewResult('warn', 'Code expired', 'The code on the screen changes every 15 seconds. Scan the current code again.');
+}
+</script>
+</body>
+</html>
