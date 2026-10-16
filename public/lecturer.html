@@ -62,9 +62,11 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{ou
 .stage:fullscreen{background:var(--bg);border-radius:0;border:0;padding:4vh 4vw;grid-template-columns:minmax(0,75vh) auto;justify-content:center;gap:6vw}
 .stage:fullscreen .big{font-size:20vh}
 .stage:fullscreen .bigl{font-size:4vh}
-.stage:fullscreen .actions,.stage:fullscreen .tip{display:none}
+.stage:fullscreen .actions,.stage:fullscreen .tip,.stage:fullscreen .rot{display:none}
 @media(max-width:720px){.stage{grid-template-columns:1fr;gap:20px}}
 
+.rot{display:flex;gap:10px;align-items:center;font-weight:700;margin:0 0 16px}
+.rot select{min-height:40px}
 .summary{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 .tools{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .tools input{flex:1 1 200px}
@@ -87,7 +89,8 @@ td small{display:block;color:var(--ink2)}
 /* ---------- config ---------- */
 const SUPABASE_URL = 'https://ghbjubthwxrvifnpmdit.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoYmp1YnRod3hydmlmbnBtZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0OTI2ODMsImV4cCI6MjEwNzA2ODY4M30.kwl_bi14TjPqgH1MsRE3JzH_Ws7ubPGbgIjeKjZFppg';
-const ROTATE_MS = 15000;      // a new QR token every 15 seconds
+let rotateMs = (() => { try { const v = +localStorage.getItem('rotateMs'); return [15000, 30000, 60000, 120000, 300000].includes(v) ? v : 30000; } catch (_) { return 30000; } })();
+const lbl = ms => ms < 60000 ? ms / 1000 + ' seconds' : ms / 60000 + (ms === 60000 ? ' minute' : ' minutes');
 const POLL_MS = 4000;         // refresh the attendance list every 4 seconds
 const STUDENT_PAGE = 'student.html'; // must sit in the same folder as this file
 
@@ -343,8 +346,9 @@ async function viewSession(id, my) {
     <section class="stage" id="stage" ${open ? '' : 'hidden'}>
       <div class="qrcol"><div class="qr" id="qr"></div><div class="bar"><i id="fill"></i></div><p class="muted" id="cd" style="text-align:center">Preparing code…</p></div>
       <div><p class="big" id="big">0</p><p class="bigl" id="bigl">checked in</p>
+        <label class="rot">New code every <select id="rot">${[[15000, '15 seconds'], [30000, '30 seconds'], [60000, '1 minute'], [120000, '2 minutes'], [300000, '5 minutes']].map(([v, t]) => `<option value="${v}" ${v === rotateMs ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
         <div class="actions"><button class="btn ghost" id="fs">Show full screen</button><button class="btn danger" id="close">Close attendance</button></div>
-        <p class="note tip">Students scan this code with their phone camera. It changes every ${ROTATE_MS / 1000} seconds, so a screenshot stops working quickly.</p></div>
+        <p class="note tip">Students scan this code with their phone camera. It changes every <span id="rotTxt">${lbl(rotateMs)}</span>, so a screenshot stops working after that.</p></div>
     </section>
     <section class="panel"><h2>Attendance list</h2>
       <div class="summary" id="sum"></div>
@@ -408,7 +412,7 @@ async function viewSession(id, my) {
   let lastRot = 0, lastTry = 0, rotating = false;
   const rotate = async () => {
     rotating = true;
-    const { data, error } = await sb.rpc('new_token', { p_session: id });
+    const { data, error } = await sb.rpc('new_token', { p_session: id, p_seconds: Math.round(rotateMs / 1000) + 10 });
     rotating = false;
     if (my !== routeId) return;
     if (error) { $('#cd').textContent = 'Connection problem. Retrying…'; return; }
@@ -418,19 +422,25 @@ async function viewSession(id, my) {
   };
   every(() => {
     const now = Date.now();
-    if (!rotating && now - lastRot >= ROTATE_MS && now - lastTry >= 3000) { lastTry = now; rotate(); }
+    if (!rotating && now - lastRot >= rotateMs && now - lastTry >= 3000) { lastTry = now; rotate(); }
   }, 500);
   let lastSec = -1;
   const frame = () => {
-    const rem = lastRot ? Math.max(0, ROTATE_MS - (Date.now() - lastRot)) : ROTATE_MS;
-    $('#fill').style.width = (rem / ROTATE_MS * 100) + '%';
+    const rem = lastRot ? Math.max(0, rotateMs - (Date.now() - lastRot)) : rotateMs;
+    $('#fill').style.width = (rem / rotateMs * 100) + '%';
     const sec = Math.ceil(rem / 1000);
-    if (lastRot && sec !== lastSec) { lastSec = sec; $('#cd').textContent = `New code in ${sec}s`; }
+    if (lastRot && sec !== lastSec) { lastSec = sec; $('#cd').textContent = 'New code in ' + (sec >= 60 ? Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') : sec + 's'); }
     raf = requestAnimationFrame(frame);
   };
   frame();
 
   /* controls */
+  $('#rot').onchange = e => {
+    rotateMs = +e.target.value;
+    try { localStorage.setItem('rotateMs', rotateMs); } catch (_) {}
+    $('#rotTxt').textContent = lbl(rotateMs);
+    lastRot = 0; lastTry = 0; lastSec = -1;   // issue a new code now, with the new duration
+  };
   $('#fs').onclick = () => document.fullscreenElement ? document.exitFullscreen() : $('#stage').requestFullscreen().catch(() => toast('Full screen is not available in this browser.', true));
   $('#close').onclick = async () => {
     if (!confirm('Close attendance? Students will no longer be able to check in.')) return;
