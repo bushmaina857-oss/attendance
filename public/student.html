@@ -37,6 +37,7 @@ input:focus-visible,button:focus-visible{outline:3px solid var(--amber);outline-
 .spin{width:44px;height:44px;border:5px solid var(--line);border-top-color:var(--ink);border-radius:50%;margin:8px auto 16px;animation:s 1s linear infinite}
 @keyframes s{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.hist{margin-top:16px;padding:18px}.hist h2{font-size:18px;margin:0 0 6px}.hrow{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:15px}.hrow small{display:block;color:var(--ink2)}.hrow>span:last-child{white-space:nowrap;color:var(--ink2)}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--bad);color:#fff;padding:12px 18px;border-radius:12px;max-width:90vw}
 </style>
 </head>
@@ -118,13 +119,31 @@ function askCode(email) {
     if (error) toast('That code did not work. Check it, or go back and request a new one.');
   };
 }
-function viewReady(session) {
-  app.innerHTML = `<section class="card center">${ICONS.ok}<h1>You're signed in</h1>
-    <p>${esc(session.user.email)}</p>
-    <p class="muted">To check in, scan the QR code on your lecturer's screen with your phone's camera. You won't need to sign in again on this phone.</p></section>`;
+const KIND = { lecture: 'Lecture', td: 'TD', tp: 'TP' };
+const fmtWhen = x => new Date(x).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const fullName = r => [r.surname, r.first_name, r.second_name].filter(Boolean).join(' ');
+async function loadHistory() {
+  const { data, error } = await sb.rpc('my_checkins', { p_limit: 10 });
+  return error ? null : (data || []);
 }
-function viewResult(kind, title, detail, extra = '') {
-  app.innerHTML = `<section class="card center result ${kind}">${ICONS[kind]}<h1>${esc(title)}</h1><p>${esc(detail)}</p>${extra}</section>`;
+function historyHtml(rows) {
+  if (rows === null) return '';
+  const who = rows.find(r => r.surname);
+  return `<section class="card hist"><h2>Your recent check-ins</h2>
+    ${who ? `<p class="muted">Your lecturer sees you as <b>${esc(fullName(who))}</b>.</p>` : ''}
+    ${rows.length ? rows.map(r => `<div class="hrow"><span><b>${esc(r.course_name)}</b><small>${esc(r.session_title || KIND[r.kind])}${r.group_name ? ', Group ' + esc(r.group_name) : ''}${r.method === 'manual' ? ', marked by lecturer' : ''}</small></span><span>${fmtWhen(r.checked_at)}</span></div>`).join('') : '<p class="muted">No check-ins yet.</p>'}
+  </section>`;
+}
+async function viewReady(session) {
+  app.innerHTML = `<section class="card center">${ICONS.ok}<h1>You're signed in</h1><p>${esc(session.user.email)}</p>
+    <p class="muted">To check in, scan the QR code on your lecturer's screen with your phone's camera. You won't need to sign in again on this phone.</p>
+    <button class="btn ghost" id="rf" style="margin-top:8px">Refresh my check-ins</button></section><div id="hist"></div>`;
+  const show = async () => { $('#hist').innerHTML = historyHtml(await loadHistory()); };
+  $('#rf').onclick = show;
+  show();
+}
+function viewResult(kind, title, detail, extra = '', after = '') {
+  app.innerHTML = `<section class="card center result ${kind}">${ICONS[kind]}<h1>${esc(title)}</h1><p>${esc(detail)}</p>${extra}</section>${after}`;
 }
 
 async function checkIn(t, session) {
@@ -136,7 +155,14 @@ async function checkIn(t, session) {
     return;
   }
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  if (data === 'ok') return viewResult('ok', 'Attendance recorded', session.user.email, `<p class="when">${time}</p>`);
+  if (data === 'ok') {
+    const rows = await loadHistory();
+    const last = rows && rows[0];
+    const name = last && last.surname ? fullName(last) : session.user.email;
+    const what = last ? `<p class="when">${esc(last.course_name)}${last.session_title ? ', ' + esc(last.session_title) : ''}</p>` : '';
+    const at = last ? new Date(last.checked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : time;
+    return viewResult('ok', 'Attendance recorded', name, `${what}<p class="when">${at}</p>`, historyHtml(rows));
+  }
   if (data === 'wrong_group') return viewResult('bad', 'Wrong group', 'This session is for a different section or group. Check that you scanned the right screen.');
   if (data === 'not_enrolled') return viewResult('bad', "You're not on this class list", `Your email (${session.user.email}) isn't on the list for this course. Tell your lecturer, who can mark you present.`);
   return viewResult('warn', 'Code expired', 'The code on the screen changes every 15 seconds. Scan the current code again.');
