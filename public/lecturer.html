@@ -2,72 +2,149 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#12343B">
 <title>Lecturer attendance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-:root{--ink:#12343B;--ink2:#4B6A70;--bg:#EDF2F1;--card:#fff;--line:#D3DEDC;--amber:#E8A317;--ok:#1C7C54;--okbg:#E1F2E9;--bad:#B3402F;--badbg:#F9E5E1}
+:root{
+  --hero:#12343B;--ink:#12343B;--ink2:#4B6A70;
+  --bg:#EAF0EF;--card:#fff;--field:#fff;--line:#D3DEDC;--hover:#F3F7F6;
+  --amber:#E8A317;--ok:#1C7C54;--okbg:#E1F2E9;--okfg:#1C7C54;--bad:#B3402F;--badbg:#F9E5E1;--badfg:#B3402F;
+  --display:'Bricolage Grotesque','Atkinson Hyperlegible',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--hero:#0E2A30;--ink:#E8F1F0;--ink2:#9DB7BB;--bg:#081619;--card:#102329;--field:#173039;--line:#2B444B;--hover:#15303A;--okbg:#14392B;--okfg:#7FD6A8;--badbg:#3B1D19;--badfg:#F29C8E}
+}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif}
-header.bar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 20px;background:var(--ink);color:#fff}
-header .brand{font-weight:700;font-size:18px}
-header .who{display:flex;align-items:center;gap:12px;font-size:14px}
-header .who button{font:inherit;font-size:14px;background:transparent;color:#fff;border:1.5px solid #fff;border-radius:8px;padding:4px 12px;cursor:pointer;min-height:34px}
-main{max-width:980px;margin:0 auto;padding:24px 16px 64px}
-h1{font-size:28px;line-height:1.2;margin:0 0 4px}
-h2{font-size:20px;margin:0 0 12px}
-a{color:var(--ink)}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font:16px/1.5 'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif}
+h1,h2{font-family:var(--display)}
+a{color:inherit}
 .muted{color:var(--ink2);margin:0}
-.back{display:inline-block;margin-bottom:12px;font-size:15px}
-.head{margin-bottom:20px}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:20px}
-.narrow{max-width:420px;margin:48px auto}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+
+/* ---------- top bar ---------- */
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 20px 10px;background:var(--hero);color:#fff}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:18px}
+.brand .mark{width:32px;height:32px;border-radius:10px;background:var(--amber);display:grid;place-items:center;flex:none}
+.who{display:flex;align-items:center;gap:12px;font-size:14px;min-width:0}
+.who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.9}
+.who button{font:inherit;font-size:14px;background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.5);border-radius:10px;padding:4px 14px;cursor:pointer;min-height:36px;flex:none}
+
+/* ---------- page banner ---------- */
+.banner{position:relative;overflow:hidden;background:var(--hero);color:#fff;padding:22px 0 64px}
+.banner.slim{padding-bottom:26px}
+.banner::before,.banner::after{content:"";position:absolute;border-radius:50%;background:#fff;opacity:.06;pointer-events:none}
+.banner::before{width:340px;height:340px;left:-130px;top:-150px}
+.banner::after{width:260px;height:260px;right:-80px;bottom:-120px}
+.banner .wrap{position:relative}
+.banner h1{font-weight:800;font-size:clamp(28px,5vw,38px);line-height:1.1;margin:0 0 6px;text-wrap:balance}
+.banner p{margin:0;opacity:.85}
+.back{display:inline-block;margin-bottom:10px;font-size:15px;opacity:.85}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chips span{background:rgba(255,255,255,.12);border-radius:99px;padding:3px 14px;font-size:14px}
+.chips .live{background:var(--amber);color:#12343B;font-weight:700}
+.chips .done{background:rgba(255,255,255,.2);font-weight:700}
+.pull{position:relative;margin-top:-40px}
+.gap{padding-top:20px}
+main.pad,.pad{padding-bottom:64px}
+
+/* ---------- panels ---------- */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;margin-bottom:20px}
+.panel.primary{border-top:5px solid var(--amber)}
+.panel h2{font-weight:700;font-size:21px;margin:0 0 12px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media(max-width:860px){.cols{grid-template-columns:1fr}}
 .stack{display:grid;gap:14px}
 label{display:grid;gap:6px;font-weight:700;font-size:15px}
-input,select{font:inherit;font-weight:400;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);min-height:44px;min-width:0}
+input,select{font:inherit;font-weight:400;padding:10px 12px;border:2px solid var(--line);border-radius:12px;background:var(--field);color:var(--ink);min-height:46px;min-width:0}
+input:focus{border-color:var(--amber)}
 input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
-.btn{font:inherit;font-weight:700;padding:10px 18px;border-radius:10px;border:2px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;min-height:44px}
-.btn.ghost{background:transparent;color:var(--ink)}
-.btn.danger{background:var(--bad);border-color:var(--bad)}
-.btn.small{min-height:34px;padding:4px 12px;font-size:14px;border-radius:8px}
+.btn{font:inherit;font-weight:700;padding:10px 18px;border-radius:12px;border:2px solid var(--amber);background:var(--amber);color:#12343B;cursor:pointer;min-height:46px}
+.btn.ghost{background:transparent;border-color:var(--line);color:var(--ink)}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn.small{min-height:36px;padding:4px 14px;font-size:14px;border-radius:10px}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
 .row>label{flex:1 1 180px}
-.list .item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 4px;border-top:1px solid var(--line);color:inherit;text-decoration:none}
+.note{font-size:14px;color:var(--ink2);margin:8px 0 0}
+.empty{display:flex;gap:12px;align-items:center;padding:16px;border:2px dashed var(--line);border-radius:14px;color:var(--ink2)}
+
+/* course tiles and lists */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.tile{display:flex;align-items:center;gap:14px;padding:14px;border:2px solid var(--line);border-radius:16px;text-decoration:none;color:inherit;transition:border-color .15s,background .15s}
+.tile:hover{border-color:var(--amber);background:var(--hover)}
+.tile .ic{flex:none;width:48px;height:48px;border-radius:14px;display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:800;font-size:22px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.tile b{display:block;line-height:1.25}
+.tile .go{margin-left:auto;color:var(--ink2);flex:none}
+.list .item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 8px;border-top:1px solid var(--line);color:inherit;text-decoration:none;border-radius:10px}
 .list .item:first-child{border-top:0}
-.list .item:hover{background:#F5F8F7}
+.list .item:hover{background:var(--hover)}
 .item b{display:block}
-.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:14px;font-weight:700;white-space:nowrap}
-.badge.ok{background:var(--okbg);color:var(--ok)}
-.badge.bad{background:var(--badbg);color:var(--bad)}
+.badge{display:inline-block;padding:2px 12px;border-radius:99px;font-size:14px;font-weight:700;white-space:nowrap}
+.badge.ok{background:var(--okbg);color:var(--okfg)}
+.badge.bad{background:var(--badbg);color:var(--badfg)}
 .badge.idle{background:var(--line);color:var(--ink2)}
-.note{font-size:14px;color:var(--ink2);margin:6px 0 0}
-.closedstrip{background:var(--badbg);color:var(--bad);font-weight:700;border-radius:12px;padding:12px 16px;margin-bottom:20px}
+.closedstrip{background:var(--badbg);color:var(--badfg);font-weight:700;border-radius:14px;padding:12px 16px;margin-bottom:20px}
 
-/* the projected screen */
-.stage{display:grid;grid-template-columns:minmax(260px,420px) 1fr;gap:32px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px;margin-bottom:20px}
-.qr svg{width:100%;height:auto;display:block;border-radius:8px}
-.qr:empty{aspect-ratio:1;background:var(--bg);border-radius:8px}
-.bar{height:8px;background:var(--line);border-radius:99px;margin:14px 0 6px;overflow:hidden}
+/* ---------- sign in ---------- */
+.auth{flex:1;display:grid;grid-template-rows:auto 1fr}
+.auth-hero{position:relative;overflow:hidden;background:var(--hero);color:#fff;text-align:center;padding:28px 24px 66px;display:grid;justify-items:center;align-content:center;gap:12px}
+.auth-hero::before,.auth-hero::after{content:"";position:absolute;border-radius:50%;background:#fff;opacity:.06;pointer-events:none}
+.auth-hero::before{width:340px;height:340px;left:-130px;top:-110px}
+.auth-hero::after{width:260px;height:260px;right:-90px;bottom:-60px}
+.auth-hero>*{position:relative}
+.art{width:min(300px,70vw);height:auto;display:block;overflow:visible}
+.lead{font-family:var(--display);font-weight:800;font-size:clamp(26px,4vw,36px);line-height:1.1;margin:8px 0 0;max-width:15em;text-wrap:balance}
+.auth-hero .sub{margin:0;opacity:.88;max-width:26em;text-wrap:balance}
+.auth-form{position:relative;margin-top:-32px;border-radius:30px 30px 0 0;background:var(--card);padding:30px 24px 40px}
+.auth-card{max-width:400px;margin:0 auto}
+.auth-card h1{font-weight:800;font-size:30px;line-height:1.15;margin:0 0 6px}
+.auth-card .muted{margin-bottom:18px}
+.code{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:.3em;text-indent:.3em;text-align:center;font-variant-numeric:tabular-nums}
+.link{font:inherit;font-size:14px;background:none;border:0;color:var(--ink2);text-decoration:underline;cursor:pointer;min-height:44px;padding:0 12px}
+@media(min-width:860px){
+  .auth{grid-template-columns:1fr 1fr;grid-template-rows:1fr}
+  .auth-hero{padding:48px}
+  .auth-form{margin-top:0;border-radius:0;display:grid;align-content:center;padding:48px}
+}
+
+/* ---------- the projected screen ---------- */
+.stage{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(240px,400px) 1fr;gap:36px;align-items:center;background:var(--hero);color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:26px;padding:28px;margin-bottom:20px}
+.qr{background:#fff;padding:14px;border-radius:20px}
+.qr svg{width:100%;height:auto;display:block;border-radius:6px}
+.qr:empty{aspect-ratio:1}
+.bar{height:8px;background:rgba(255,255,255,.2);border-radius:99px;margin:16px 0 8px;overflow:hidden}
 .bar i{display:block;height:100%;width:100%;background:var(--amber)}
-.big{font-size:clamp(56px,10vw,104px);font-weight:700;line-height:1;margin:0}
-.bigl{font-size:20px;margin:4px 0 20px}
-.actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-.stage:fullscreen{background:var(--bg);border-radius:0;border:0;padding:4vh 4vw;grid-template-columns:minmax(0,75vh) auto;justify-content:center;gap:6vw}
-.stage:fullscreen .big{font-size:20vh}
-.stage:fullscreen .bigl{font-size:4vh}
-.stage:fullscreen .actions,.stage:fullscreen .tip,.stage:fullscreen .rot{display:none}
-@media(max-width:720px){.stage{grid-template-columns:1fr;gap:20px}}
-
+.stage #cd{color:rgba(255,255,255,.85)}
+.big{font-family:var(--display);font-weight:800;font-size:clamp(64px,11vw,116px);line-height:1;margin:0}
+.bigl{font-size:20px;margin:4px 0 14px;opacity:.88}
+.pbar{height:12px;background:rgba(255,255,255,.18);border-radius:99px;overflow:hidden;margin-bottom:22px}
+.pbar i{display:block;height:100%;width:0;background:#3DBE86;border-radius:99px;transition:width .4s}
 .rot{display:flex;gap:10px;align-items:center;font-weight:700;margin:0 0 16px}
-.rot select{min-height:40px}
-.summary{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.rot select{min-height:40px;background:#fff;color:#12343B;border-color:#fff}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.stage .btn.ghost{color:#fff;border-color:rgba(255,255,255,.4)}
+.stage .note{color:rgba(255,255,255,.78)}
+.stage:fullscreen{background:var(--hero);border-radius:0;border:0;padding:4vh 4vw;grid-template-columns:minmax(0,76vh) auto;justify-content:center;gap:6vw;align-content:center}
+.stage:fullscreen .big{font-size:22vh}
+.stage:fullscreen .bigl{font-size:4vh}
+.stage:fullscreen .pbar{height:2vh}
+.stage:fullscreen .actions,.stage:fullscreen .tip,.stage:fullscreen .rot{display:none}
+@media(max-width:720px){.stage{grid-template-columns:1fr;gap:22px;padding:20px}}
+
+/* ---------- roster ---------- */
+.seg{height:12px;border-radius:99px;background:var(--badbg);overflow:hidden}
+.seg i{display:block;height:100%;width:0;background:var(--ok);border-radius:99px;transition:width .4s}
+.sumrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0 16px}
 .tools{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .tools input{flex:1 1 200px}
 .tablewrap{overflow-x:auto}
@@ -75,15 +152,22 @@ table{width:100%;border-collapse:collapse}
 th{text-align:left;font-size:14px;color:var(--ink2);padding:8px;border-bottom:2px solid var(--line);white-space:nowrap}
 td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
 td small{display:block;color:var(--ink2)}
-#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;max-width:90vw;z-index:10}
+.person{display:flex;align-items:center;gap:12px}
+.av{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:14px;background:var(--line);color:var(--ink2)}
+.av.here{background:var(--okbg);color:var(--okfg)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--hero);color:#fff;padding:12px 18px;border-radius:14px;max-width:90vw;z-index:10;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 #toast.bad{background:var(--bad)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
-<header class="bar"><span class="brand">Attendance</span><span class="who" id="who"></span></header>
-<main id="app"></main>
-<div id="toast" hidden role="status"></div>
+<header class="top">
+  <!-- To add the university logo later, replace the <span class="mark"> element with an <img> -->
+  <span class="brand"><span class="mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#12343B" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l5 5L19 7"/></svg></span>Attendance</span>
+  <span class="who" id="who"></span>
+</header>
+<div id="app"></div>
+<div id="toast" hidden role="status" aria-live="polite"></div>
 
 <script>
 /* ---------- config ---------- */
@@ -103,6 +187,8 @@ const app = $('#app');
 const KIND = { lecture: 'Lecture', td: 'TD', tp: 'TP' };
 const fmtDate = x => new Date(x).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 const fmtTime = x => new Date(x).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const LOADING = '<div class="wrap gap"><p class="muted">Loading…</p></div>';
+const initials = r => (((r.surname || '')[0] || '') + ((r.first_name || '')[0] || '')).toUpperCase();
 
 let timers = [], raf = 0, routeId = 0, uid = null, wake = null;
 const every = (fn, ms) => { const t = setInterval(fn, ms); timers.push(t); return t; };
@@ -118,6 +204,12 @@ function toast(msg, bad) {
   clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, bad ? 6000 : 3500);
 }
 const sessionMeta = s => [KIND[s.kind], s.section && 'Section ' + s.section, s.group_name && 'Group ' + s.group_name, fmtDate(s.started_at)].filter(Boolean).join(', ');
+
+/* coloured page banner; sub and extra are trusted HTML, everything user-made is escaped by the caller */
+function banner(title, sub = '', { back, slim, extra = '' } = {}) {
+  return `<div class="banner${slim ? ' slim' : ''}"><div class="wrap">${back ? `<a class="back" href="${back.href}">${esc(back.text)}</a><br>` : ''}
+    <h1>${esc(title)}</h1>${sub ? `<p>${sub}</p>` : ''}${extra}</div></div>`;
+}
 
 /* ---------- routing ---------- */
 async function route() {
@@ -140,11 +232,35 @@ sb.auth.onAuthStateChange((ev, s) => { if ((s?.user?.id || null) !== uid) go(); 
 go();
 
 /* ---------- sign in ---------- */
+// A laptop showing the QR code and a live count: what the lecturer will project.
+const ART_LAPTOP = `<svg class="art" viewBox="0 0 260 190" aria-hidden="true">
+  <circle cx="22" cy="40" r="7" fill="#E8A317"/><circle cx="244" cy="96" r="4.5" fill="#E8A317" opacity=".7"/>
+  <circle cx="30" cy="140" r="4" fill="#fff" opacity=".5"/><circle cx="236" cy="150" r="3.5" fill="#fff" opacity=".6"/>
+  <rect x="38" y="12" width="184" height="124" rx="12" fill="#EDF2F1"/>
+  <rect x="46" y="20" width="168" height="108" rx="6" fill="#0B2328"/>
+  <rect x="22" y="140" width="216" height="11" rx="5.5" fill="#EDF2F1"/><rect x="108" y="140" width="44" height="4" rx="2" fill="#C5D3D1"/>
+  <rect x="56" y="30" width="72" height="72" rx="6" fill="#fff"/>
+  <g fill="none" stroke="#12343B" stroke-width="3"><rect x="62" y="36" width="18" height="18" rx="2"/><rect x="104" y="36" width="18" height="18" rx="2"/><rect x="62" y="78" width="18" height="18" rx="2"/></g>
+  <g fill="#12343B"><rect x="67" y="41" width="8" height="8"/><rect x="109" y="41" width="8" height="8"/><rect x="67" y="83" width="8" height="8"/>
+    <rect x="88" y="38" width="6" height="6"/><rect x="88" y="50" width="6" height="6"/><rect x="96" y="62" width="6" height="6"/>
+    <rect x="108" y="66" width="6" height="6"/><rect x="88" y="76" width="6" height="6"/><rect x="100" y="84" width="6" height="6"/>
+    <rect x="112" y="82" width="6" height="6"/><rect x="86" y="90" width="6" height="6"/></g>
+  <text x="142" y="64" font-family="'Bricolage Grotesque',system-ui,sans-serif" font-weight="800" font-size="32" fill="#fff">126</text>
+  <text x="143" y="80" font-family="system-ui,sans-serif" font-size="11" fill="#fff" opacity=".75">checked in</text>
+  <rect x="143" y="92" width="58" height="7" rx="3.5" fill="#fff" opacity=".2"/><rect x="143" y="92" width="48" height="7" rx="3.5" fill="#3DBE86"/>
+  <circle cx="222" cy="22" r="17" fill="#1C7C54" stroke="#12343B" stroke-width="5"/>
+  <path d="M214 22l6 6 11-12" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+function authScreen(title, sub, form) {
+  app.innerHTML = `<div class="auth"><div class="auth-hero">${ART_LAPTOP}
+    <p class="lead">Take attendance in seconds</p>
+    <p class="sub">Show the code on the projector. Students scan it with their phones, and you watch the list fill in.</p></div>
+    <div class="auth-form"><div class="auth-card"><h1>${title}</h1><p class="muted">${sub}</p>${form}</div></div></div>`;
+}
 function viewLogin() {
-  app.innerHTML = `<section class="panel narrow"><h1>Sign in</h1>
-    <p class="muted" style="margin-bottom:16px">Enter your email. We'll send you a code to sign in.</p>
-    <form id="f1" class="stack"><label>Email<input id="em" type="email" required autocomplete="email"></label>
-    <button class="btn">Send code</button></form></section>`;
+  authScreen('Sign in', 'Enter your email. We’ll send you a code to sign in.',
+    `<form id="f1" class="stack"><label>Email<input id="em" type="email" required autocomplete="email"></label>
+    <button class="btn">Send code</button></form>`);
   $('#f1').onsubmit = async e => {
     e.preventDefault();
     const email = $('#em').value.trim().toLowerCase(), b = $('#f1 button');
@@ -156,31 +272,35 @@ function viewLogin() {
   };
 }
 function askCode(email) {
-  app.innerHTML = `<section class="panel narrow"><h1>Enter your code</h1>
-    <p class="muted" style="margin-bottom:16px">We sent a code to ${esc(email)}. It can take a minute to arrive.</p>
-    <form id="f2" class="stack"><label>Code<input id="cd" inputmode="numeric" autocomplete="one-time-code" required></label>
-    <button class="btn">Sign in</button><button type="button" id="back" class="btn ghost">Use a different email</button></form></section>`;
+  authScreen('Enter your code', `We sent a code to <b>${esc(email)}</b>. It can take a minute to arrive.`,
+    `<form id="f2" class="stack"><label>Code<input id="cd" class="code" inputmode="numeric" autocomplete="one-time-code" required></label>
+    <button class="btn" id="go">Sign in</button><button type="button" id="back" class="link">Use a different email</button></form>`);
   $('#back').onclick = viewLogin;
   $('#f2').onsubmit = async e => {
     e.preventDefault();
+    const b = $('#go'); b.disabled = true;
     const { error } = await sb.auth.verifyOtp({ email, token: $('#cd').value.trim(), type: 'email' });
-    if (error) toast('That code did not work. Check it and try again, or request a new one.', true);
+    if (error) { b.disabled = false; toast('That code did not work. Check it and try again, or request a new one.', true); }
   };
 }
 
 /* ---------- home: courses ---------- */
+const TONES = ['#12343B', '#1C7C54', '#2F6C8F', '#B3402F', '#8A5A00'];
 async function viewHome(my) {
-  app.innerHTML = '<p class="muted">Loading…</p>';
+  app.innerHTML = LOADING;
   const { data, error } = await sb.from('courses').select('id,code,name').order('created_at', { ascending: false });
   if (my !== routeId) return;
-  if (error) { app.innerHTML = `<p>Could not load your courses: ${esc(error.message)}</p>`; return; }
-  app.innerHTML = `<div class="head"><h1>Your courses</h1></div>
-    <section class="panel">${data.length ? `<div class="list">${data.map(c => `
-      <a class="item" href="#/course/${c.id}"><span><b>${esc(c.name)}</b>${c.code ? `<span class="muted">${esc(c.code)}</span>` : ''}</span><span aria-hidden="true">Open</span></a>`).join('')}</div>`
-      : '<p class="muted">No courses yet. Add your first one below.</p>'}</section>
+  if (error) { app.innerHTML = `<div class="wrap gap"><p>Could not load your courses: ${esc(error.message)}</p></div>`; return; }
+  app.innerHTML = `${banner('Your courses', 'Pick a course to start attendance or to manage its class list.')}
+    <div class="wrap pull pad">
+    <section class="panel">${data.length ? `<div class="tiles">${data.map((c, i) => `
+      <a class="tile" href="#/course/${c.id}"><span class="ic" style="background:${TONES[i % TONES.length]}">${esc((c.name || '?').trim().charAt(0).toUpperCase())}</span>
+      <span><b>${esc(c.name)}</b>${c.code ? `<span class="muted">${esc(c.code)}</span>` : ''}</span>
+      <svg class="go" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Open"><path d="M9 6l6 6-6 6"/></svg></a>`).join('')}</div>`
+      : '<div class="empty">No courses yet. Add your first one below.</div>'}</section>
     <section class="panel"><h2>Add a course</h2>
       <form id="nc" class="row"><label>Course name<input id="cn" required placeholder="e.g. Anatomy"></label>
-      <label>Code (optional)<input id="cc" placeholder="e.g. ANAT1"></label><button class="btn">Add course</button></form></section>`;
+      <label>Code (optional)<input id="cc" placeholder="e.g. ANAT1"></label><button class="btn">Add course</button></form></section></div>`;
   $('#nc').onsubmit = async e => {
     e.preventDefault();
     const { error } = await sb.from('courses').insert({ name: $('#cn').value.trim(), code: $('#cc').value.trim() || null });
@@ -247,24 +367,25 @@ function download(name, text, type = 'text/csv;charset=utf-8') {
 
 /* ---------- course ---------- */
 async function viewCourse(id, my) {
-  app.innerHTML = '<p class="muted">Loading…</p>';
+  app.innerHTML = LOADING;
   const [c, e, s] = await Promise.all([
     sb.from('courses').select('id,code,name').eq('id', id).single(),
     sb.from('enrollments').select('section,group_name', { count: 'exact' }).eq('course_id', id).range(0, 4999),
     sb.from('sessions').select('id,title,kind,section,group_name,started_at,closed_at').eq('course_id', id).order('started_at', { ascending: false }).limit(30)
   ]);
   if (my !== routeId) return;
-  if (c.error || !c.data) { app.innerHTML = '<p>Course not found. <a href="#/">Back to your courses</a></p>'; return; }
+  if (c.error || !c.data) { app.innerHTML = '<div class="wrap gap"><p>Course not found. <a href="#/">Back to your courses</a></p></div>'; return; }
   const total = e.count || 0;
   const uniq = k => [...new Set((e.data || []).map(r => r[k]).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   const sections = uniq('section'), groups = uniq('group_name');
   const opts = (arr, all) => `<option value="">${all}</option>` + arr.map(x => `<option>${esc(x)}</option>`).join('');
   const sess = s.data || [];
+  const chips = `<div class="chips"><span>${total} ${total === 1 ? 'student' : 'students'}</span>${groups.length ? `<span>${groups.length} ${groups.length === 1 ? 'group' : 'groups'}</span>` : ''}<span>${sess.length} ${sess.length === 1 ? 'session' : 'sessions'}</span></div>`;
 
-  app.innerHTML = `<a class="back" href="#/">Your courses</a>
-    <div class="head"><h1>${esc(c.data.name)}</h1>${c.data.code ? `<p class="muted">${esc(c.data.code)}</p>` : ''}</div>
+  app.innerHTML = `${banner(c.data.name, c.data.code ? esc(c.data.code) : '', { back: { href: '#/', text: 'Your courses' }, extra: chips })}
+    <div class="wrap pull pad"><div class="cols"><div>
 
-    <section class="panel"><h2>Start attendance</h2>
+    <section class="panel primary"><h2>Start attendance</h2>
       <form id="start" class="stack">
         <div class="row"><label>Title<input id="ttl" placeholder="e.g. Lecture 12"></label>
         <label>Type<select id="kind"><option value="lecture">Lecture</option><option value="td">TD</option><option value="tp">TP</option></select></label></div>
@@ -274,17 +395,21 @@ async function viewCourse(id, my) {
         ${total ? '' : '<p class="note">Upload your class list first.</p>'}
       </form></section>
 
-    <section class="panel"><h2>Class list</h2>
-      <p class="muted" style="margin-bottom:12px">${total ? `${total} students${groups.length ? `, ${groups.length} groups` : ''}` : 'No students yet.'}</p>
-      <div class="row"><label>Upload your class list (Excel or CSV)<input id="csv" type="file" accept=".xlsx,.xls,.csv,text/csv"></label>
-      <button class="btn ghost" id="tpl" type="button">Download template</button></div>
-      <p class="note">Columns: surname, first_name, second_name, student_number, email, section, group. Uploading again updates existing students.</p>
-      <label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:10px"><input id="rep" type="checkbox" style="width:auto;min-height:0"> Replace the whole list instead of updating it</label></section>
-
     <section class="panel"><h2>Past sessions</h2>${sess.length ? `<div class="list">${sess.map(x => `
       <a class="item" href="#/session/${x.id}"><span><b>${esc(x.title || KIND[x.kind])}</b><span class="muted">${esc(sessionMeta(x))}</span></span>
       <span class="badge ${x.closed_at ? 'idle' : 'ok'}">${x.closed_at ? 'Closed' : 'Open'}</span></a>`).join('')}</div>`
-      : '<p class="muted">No sessions yet. Start one above when your class begins.</p>'}</section>`;
+      : '<div class="empty">No sessions yet. Start one above when your class begins.</div>'}</section>
+
+    </div><div>
+
+    <section class="panel"><h2>Class list</h2>
+      <p class="muted" style="margin-bottom:14px">${total ? `${total} students${groups.length ? `, ${groups.length} groups` : ''}` : 'No students yet.'}</p>
+      <div class="row"><label>Upload your class list (Excel or CSV)<input id="csv" type="file" accept=".xlsx,.xls,.csv,text/csv"></label>
+      <button class="btn ghost" id="tpl" type="button">Download template</button></div>
+      <p class="note">Columns: surname, first_name, second_name, student_number, email, section, group. Uploading again updates existing students.</p>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:12px"><input id="rep" type="checkbox" style="width:auto;min-height:0"> Replace the whole list instead of updating it</label></section>
+
+    </div></div></div>`;
 
   $('#kind').onchange = () => { $('#grp').hidden = $('#kind').value === 'lecture'; };
   $('#tpl').onclick = () => download('class_list_template.csv',
@@ -333,43 +458,46 @@ function qrSvg(text) {
 const cell = v => { v = String(v ?? ''); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
 
 async function viewSession(id, my) {
-  app.innerHTML = '<p class="muted">Loading…</p>';
+  app.innerHTML = LOADING;
   const { data: s, error } = await sb.from('sessions')
     .select('id,title,kind,section,group_name,started_at,closed_at,course_id,courses(name,code)').eq('id', id).single();
   if (my !== routeId) return;
-  if (error || !s) { app.innerHTML = '<p>Session not found. <a href="#/">Back to your courses</a></p>'; return; }
+  if (error || !s) { app.innerHTML = '<div class="wrap gap"><p>Session not found. <a href="#/">Back to your courses</a></p></div>'; return; }
   const open = !s.closed_at;
+  const status = `<div class="chips"><span class="${open ? 'live' : 'done'}">${open ? 'Open for check-in' : 'Closed'}</span></div>`;
 
-  app.innerHTML = `<a class="back" href="#/course/${s.course_id}">${esc(s.courses?.name || 'Course')}</a>
-    <div class="head"><h1>${esc(s.title || KIND[s.kind])}</h1><p class="muted">${esc(sessionMeta(s))}</p></div>
+  app.innerHTML = `${banner(s.title || KIND[s.kind], esc(sessionMeta(s)), { back: { href: '#/course/' + s.course_id, text: s.courses?.name || 'Course' }, slim: true, extra: status })}
+    <div class="wrap gap pad">
     ${open ? '' : `<div class="closedstrip">Attendance closed at ${fmtTime(s.closed_at)}. You can still mark students present below.</div>`}
     <section class="stage" id="stage" ${open ? '' : 'hidden'}>
       <div class="qrcol"><div class="qr" id="qr"></div><div class="bar"><i id="fill"></i></div><p class="muted" id="cd" style="text-align:center">Preparing code…</p></div>
-      <div><p class="big" id="big">0</p><p class="bigl" id="bigl">checked in</p>
+      <div><p class="big" id="big">0</p><p class="bigl" id="bigl">checked in</p><div class="pbar"><i id="pfill"></i></div>
         <label class="rot">New code every <select id="rot">${[[15000, '15 seconds'], [30000, '30 seconds'], [60000, '1 minute'], [120000, '2 minutes'], [300000, '5 minutes']].map(([v, t]) => `<option value="${v}" ${v === rotateMs ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
         <div class="actions"><button class="btn ghost" id="fs">Show full screen</button><button class="btn danger" id="close">Close attendance</button></div>
         <p class="note tip">Students scan this code with their phone camera. It changes every <span id="rotTxt">${lbl(rotateMs)}</span>, so a screenshot stops working after that.</p></div>
     </section>
     <section class="panel"><h2>Attendance list</h2>
-      <div class="summary" id="sum"></div>
+      <div id="sum"></div>
       <div class="tools"><input id="q" type="search" placeholder="Search by name or number" aria-label="Search students">
         <select id="flt" aria-label="Filter by status"><option value="all">Everyone</option><option value="present">Present</option><option value="absent">Absent</option></select>
         <button class="btn ghost" id="exp">Export Excel</button><button class="btn ghost" id="expcsv">CSV</button></div>
       <div class="tablewrap"><table><thead><tr><th>Student</th><th>Group</th><th>Status</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
-    </section>`;
+    </section></div>`;
 
   /* roster */
   let roster = [], filter = 'all', query = '';
   const paint = () => {
     const total = roster.length, present = roster.filter(r => r.status !== 'absent').length;
-    $('#sum').innerHTML = `<span class="badge ok">${present} present</span><span class="badge bad">${total - present} absent</span><span class="muted">${total} expected</span>`;
-    if (open) { $('#big').textContent = present; $('#bigl').textContent = `checked in of ${total}`; }
+    const pct = total ? present / total * 100 : 0;
+    $('#sum').innerHTML = `<div class="seg" role="img" aria-label="${present} of ${total} present"><i style="width:${pct}%"></i></div>
+      <div class="sumrow"><span class="badge ok">${present} present</span><span class="badge bad">${total - present} absent</span><span class="muted">${total} expected</span></div>`;
+    if (open) { $('#big').textContent = present; $('#bigl').textContent = `checked in of ${total}`; const pf = $('#pfill'); if (pf) pf.style.width = pct + '%'; }
     const q = query.toLowerCase();
     const list = roster.filter(r => (filter === 'all' || (filter === 'absent') === (r.status === 'absent'))
       && (!q || `${r.surname} ${r.first_name} ${r.second_name || ''} ${r.student_number || ''}`.toLowerCase().includes(q)));
     $('#rows').innerHTML = list.length ? list.map(r => {
       const here = r.status !== 'absent';
-      return `<tr><td><b>${esc(r.surname)}</b> ${esc(r.first_name)} ${esc(r.second_name || '')}${r.student_number ? `<small>${esc(r.student_number)}</small>` : ''}</td>
+      return `<tr><td><div class="person"><span class="av ${here ? 'here' : ''}">${esc(initials(r))}</span><span><b>${esc(r.surname)}</b> ${esc(r.first_name)} ${esc(r.second_name || '')}${r.student_number ? `<small>${esc(r.student_number)}</small>` : ''}</span></div></td>
         <td>${esc([r.section, r.group_name].filter(Boolean).join(' / '))}</td>
         <td><span class="badge ${here ? 'ok' : 'bad'}">${here ? 'Present' : 'Absent'}</span>${here ? `<small>${fmtTime(r.checked_at)}${r.method === 'manual' ? ', marked by lecturer' : ''}</small>` : ''}</td>
         <td>${here ? '' : `<button class="btn small ghost" data-mark="${esc(r.student_email)}">Mark present</button>`}</td></tr>`;
