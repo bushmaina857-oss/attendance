@@ -8,26 +8,25 @@
 <title>Check in</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
 :root{
   --hero:#12343B;--hero-ink:#12343B;
   --ink:#12343B;--ink2:#4B6A70;
-  --sheet:#fff;--field:#fff;--line:#D3DEDC;--page:#DDE7E5;
-  --amber:#E8A317;--ok:#1C7C54;--okbg:#E1F2E9;--bad:#B3402F;--warn:#8A5A00;
-  --display:'Bricolage Grotesque','Atkinson Hyperlegible',system-ui,sans-serif;
+  --sheet:#fff;--field:#fff;--line:#D3DEDC;--page:#DDE7E5;--chip:#E9EFEE;--tip:#FBEFD2;
+  --amber:#E8A317;--ok:#1C7C54;--okbg:#E1F2E9;--okfg:#1C7C54;--bad:#B3402F;--warn:#8A5A00;
+  --display:'Bricolage Grotesque','Figtree',system-ui,sans-serif;
 }
 @media (prefers-color-scheme:dark){
-  :root{--hero:#0E2A30;--ink:#E8F1F0;--ink2:#9DB7BB;--sheet:#102329;--field:#173039;--line:#2B444B;--page:#081619;--okbg:#14392B}
+  :root{--hero:#0E2A30;--ink:#E8F1F0;--ink2:#9DB7BB;--sheet:#102329;--field:#173039;--line:#2B444B;--page:#081619;--chip:#1D3840;--tip:#3A2E0E;--okbg:#14392B;--okfg:#7FD6A8}
 }
 *{box-sizing:border-box}
 html{background:var(--hero)}
-body{margin:0;min-height:100vh;min-height:100dvh;background:var(--hero);color:var(--ink);font:17px/1.5 'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif}
+body{margin:0;min-height:100vh;min-height:100dvh;background:var(--hero);color:var(--ink);font:17px/1.5 'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif}
 .shell{min-height:100vh;min-height:100dvh;max-width:480px;margin:0 auto;display:flex;flex-direction:column;background:var(--sheet)}
 @media (min-width:560px){
-  body{background:var(--page)}
-  html{background:var(--page)}
+  body,html{background:var(--page)}
   .shell{box-shadow:0 0 0 1px var(--line),0 24px 60px rgba(0,0,0,.18)}
 }
 #app{flex:1;display:flex;flex-direction:column}
@@ -61,9 +60,16 @@ body{margin:0;min-height:100vh;min-height:100dvh;background:var(--hero);color:va
   .icon .tick{animation:none;stroke-dashoffset:0}
 }
 
+/* compact header for the signed-in home screen: who you are, not a poster */
+.hero.compact{flex:none;text-align:left;padding-bottom:52px}
+.me{position:relative;display:flex;align-items:center;gap:14px;margin-top:16px}
+.me .av{flex:none;width:56px;height:56px;border-radius:50%;background:var(--amber);color:#12343B;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:21px}
+.hero .me h1{font-size:24px;line-height:1.15;margin:0 0 2px;max-width:none}
+.hero .me p{font-size:14px;line-height:1.35;opacity:.85;max-width:none;overflow-wrap:anywhere}
+
 /* ---------- sheet (bottom, content) ---------- */
-.sheet{position:relative;margin-top:-30px;background:var(--sheet);border-radius:30px 30px 0 0;padding:28px 24px 12px}
-.sheet h2{font-family:var(--display);font-weight:700;font-size:20px;margin:0 0 4px}
+.sheet{position:relative;margin-top:-30px;background:var(--sheet);border-radius:30px 30px 0 0;padding:24px 24px 12px}
+.sheet h2{font-family:var(--display);font-weight:700;font-size:18px;margin:22px 0 4px}
 .sheet p{margin:0 0 12px}
 .muted{color:var(--ink2)}
 .stack{display:grid;gap:14px}
@@ -77,8 +83,11 @@ input:focus-visible,button:focus-visible{outline:3px solid var(--amber);outline-
 .btn:disabled{opacity:.6;cursor:default}
 .note{font-size:15px;color:var(--ink2);text-align:center;margin:14px 0 0}
 
+.tip{display:flex;gap:12px;align-items:center;background:var(--tip);border-radius:16px;padding:12px 14px;margin-bottom:4px;font-size:15px;line-height:1.35}
+.tip svg{flex:none}
+
 /* ticket shown after a successful check-in */
-.ticket{border:2px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:22px}
+.ticket{border:2px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:6px}
 .ticket .top{padding:16px 18px;background:var(--okbg)}
 .ticket .top b{display:block;font-family:var(--display);font-size:22px;line-height:1.2}
 .ticket .top span{color:var(--ink2);font-size:15px}
@@ -86,14 +95,25 @@ input:focus-visible,button:focus-visible{outline:3px solid var(--amber);outline-
 .ticket .bot span{color:var(--ink2);font-size:15px}
 .ticket .bot b{font-family:var(--display);font-size:24px}
 
-/* history */
-.hist{margin-top:6px}
-.hrow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);font-size:16px}
-.hrow small{display:block;color:var(--ink2);font-size:14px}
-.hrow>span:last-child{white-space:nowrap;color:var(--ink2);font-size:14px;text-align:right}
-.pill{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:99px;background:var(--okbg);color:var(--ok);margin-right:6px;vertical-align:1px}
-@media (prefers-color-scheme:dark){.pill{color:#7FD6A8}}
+/* check-in history, grouped by day */
+.day{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2);margin:16px 0 2px}
+.hrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.day+.hrow{border-top:0}
+.tick{flex:none;width:32px;height:32px;border-radius:50%;background:var(--okbg);display:grid;place-items:center;color:var(--okfg)}
+.hmain{flex:1;min-width:0}
+.hmain b{display:block;line-height:1.25}
+.hmain small{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:3px;color:var(--ink2);font-size:14px;line-height:1.35}
+.htime{flex:none;color:var(--ink2);font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:1px 9px;border-radius:99px;background:var(--chip);color:var(--ink2)}
 .empty{display:flex;gap:12px;align-items:center;padding:14px;border:2px dashed var(--line);border-radius:14px;color:var(--ink2);font-size:16px}
+
+/* my classes */
+.classes{margin-top:8px}
+.crow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 0;border-top:1px solid var(--line)}
+.crow b{line-height:1.25}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-block;font-size:13px;font-weight:700;padding:2px 10px;border-radius:99px;background:var(--chip);color:var(--ink2)}
+.classes .note{text-align:left;margin:6px 0 0;font-size:14px}
 
 #foot{background:var(--sheet);text-align:center;padding:0 16px calc(14px + env(safe-area-inset-bottom))}
 .link{font:inherit;font-size:14px;background:none;border:0;color:var(--ink2);text-decoration:underline;cursor:pointer;min-height:44px;padding:0 12px}
@@ -160,13 +180,19 @@ function icon(kind) {
   const label = { ok: 'Success', bad: 'Problem', warn: 'Notice' }[kind];
   return `<svg class="icon" viewBox="0 0 96 96" role="img" aria-label="${label}"><circle class="ring" cx="48" cy="48" r="44" fill="#fff" opacity=".3"/><circle cx="48" cy="48" r="38" fill="#fff"/>${glyph}</svg>`;
 }
+const TICK_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l5 5L19 7"/></svg>';
+const QR_ICON = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#12343B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM20 14v1M14 20h1M18 20h3v1"/></svg>';
 
 /* ---------- layout helper: coloured top, content sheet at the bottom ---------- */
 // To add the university logo later, replace the <span class="mark"> element below with an <img>.
 const BRAND = `<div class="brand"><span class="mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#12343B" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l5 5L19 7"/></svg></span>Attendance</div>`;
-function screen({ tone = '', art = '', title, sub = '', body = '' }) {
-  app.innerHTML = `<div class="hero ${tone}">${BRAND}<div class="hero-body">${art}<h1>${esc(title)}</h1>${sub ? `<p>${sub}</p>` : ''}</div></div><div class="sheet">${body}</div>`;
+let viewId = 0, readyRefresh = null;   // readyRefresh reloads the home screen when the student comes back to the page
+function screen({ tone = '', art = '', title = '', sub = '', body = '', compact = false, heroHtml = '' }) {
+  viewId++; readyRefresh = null;
+  const inner = heroHtml || `<div class="hero-body">${art}<h1>${esc(title)}</h1>${sub ? `<p>${sub}</p>` : ''}</div>`;
+  app.innerHTML = `<div class="hero ${tone}${compact ? ' compact' : ''}">${BRAND}${inner}</div><div class="sheet">${body}</div>`;
 }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && readyRefresh) readyRefresh(); });
 
 /* ---------- flow ---------- */
 async function step() {
@@ -225,18 +251,19 @@ function askCode(email) {
   $('#back').onclick = viewLogin;
   // "Send a new code" unlocks after 30 seconds so students don't trigger the email limit by tapping repeatedly
   const again = $('#again');
-  let left = 30;
+  let left = 30, timer = 0;
   const tick = () => { again.textContent = left > 0 ? `Send a new code (${left}s)` : 'Send a new code'; again.disabled = left > 0; };
-  tick();
-  const timer = setInterval(() => { if (!again.isConnected) return clearInterval(timer); left--; tick(); if (left <= 0) clearInterval(timer); }, 1000);
+  const start = () => {
+    left = 30; tick(); clearInterval(timer);
+    timer = setInterval(() => { if (!again.isConnected) return clearInterval(timer); left--; tick(); if (left <= 0) clearInterval(timer); }, 1000);
+  };
+  start();
   again.onclick = async () => {
     again.disabled = true;
     const { error } = await sb.auth.signInWithOtp({ email });
     if (error) { toast('Could not send the code: ' + error.message); again.disabled = false; return; }
     toast('New code sent. Use the latest one.', true);
-    left = 30; tick();
-    clearInterval(timer);
-    const t2 = setInterval(() => { if (!again.isConnected) return clearInterval(t2); left--; tick(); if (left <= 0) clearInterval(t2); }, 1000);
+    start();
   };
   $('#f2').onsubmit = async e => {
     e.preventDefault();
@@ -245,42 +272,80 @@ function askCode(email) {
     if (error) { b.disabled = false; toast('That code did not work. Check it, or request a new one.'); }
   };
 }
+
 const KIND = { lecture: 'Lecture', td: 'TD', tp: 'TP' };
-const fmtWhen = x => new Date(x).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 const fullName = r => [r.surname, r.first_name, r.second_name].filter(Boolean).join(' ');
+const timeOnly = x => new Date(x).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const dayLabel = x => {
+  const d = new Date(x), t = new Date(), y = new Date(); y.setDate(t.getDate() - 1);
+  if (d.toDateString() === t.toDateString()) return 'Today';
+  if (d.toDateString() === y.toDateString()) return 'Yesterday';
+  return d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', ...(d.getFullYear() === t.getFullYear() ? {} : { year: 'numeric' }) });
+};
 async function loadHistory() {
   const { data, error } = await sb.rpc('my_checkins', { p_limit: 10 });
   return error ? null : (data || []);
 }
+// The student's own rows from the lecturers' class lists (name, number, section, group per course).
+// Needs the my_enrollments() function in Supabase; without it this returns null and the page hides that part.
+async function loadProfile() {
+  const { data, error } = await sb.rpc('my_enrollments');
+  return error ? null : (data || []);
+}
 function historyHtml(rows) {
   if (rows === null) return '';
-  const who = rows.find(r => r.surname);
-  return `<div class="hist"><h2>Your recent check-ins</h2>
-    ${who ? `<p class="muted">Your lecturer sees you as <b>${esc(fullName(who))}</b>.</p>` : ''}
-    ${rows.length ? rows.map(r => `<div class="hrow"><span><b>${esc(r.course_name)}</b><small><span class="pill">${esc(KIND[r.kind] || r.kind)}</span>${esc(r.session_title || '')}${r.session_title && r.group_name ? ', ' : ''}${r.group_name ? 'Group ' + esc(r.group_name) : ''}${r.method === 'manual' ? ', marked by lecturer' : ''}</small></span><span>${fmtWhen(r.checked_at)}</span></div>`).join('') : '<div class="empty"><span>Nothing here yet. Your first scan will show up in this list.</span></div>'}
-  </div>`;
+  let html = '<div class="hist"><h2>Recent check-ins</h2>', lastDay = '';
+  if (!rows.length) return html + '<div class="empty"><span>Nothing here yet. Your first scan will show up in this list.</span></div></div>';
+  for (const r of rows) {
+    const day = new Date(r.checked_at).toDateString();
+    if (day !== lastDay) { lastDay = day; html += `<div class="day">${esc(dayLabel(r.checked_at))}</div>`; }
+    const kind = KIND[r.kind] || r.kind || '';
+    const t = (r.session_title || '').trim();
+    const informative = t && t.toLowerCase() !== kind.toLowerCase();   // hide "Lecture" when the kind already says it
+    const parts = [informative && esc(t), r.group_name && 'Group ' + esc(r.group_name), r.method === 'manual' && 'marked by lecturer'].filter(Boolean);
+    html += `<div class="hrow"><span class="tick" aria-label="Present">${TICK_SVG}</span>
+      <span class="hmain"><b>${esc(r.course_name)}</b><small>${kind ? `<span class="pill">${esc(kind)}</span>` : ''}${parts.join(' · ')}</small></span>
+      <span class="htime">${timeOnly(r.checked_at)}</span></div>`;
+  }
+  return html + '</div>';
 }
+function classesHtml(p) {
+  if (!p || !p.length) return '';
+  return `<div class="classes"><h2>My classes</h2>${p.map(c => `<div class="crow"><b>${esc(c.course_name)}</b><span class="chips">${c.section ? `<span class="chip">Section ${esc(c.section)}</span>` : ''}${c.group_name ? `<span class="chip">Group ${esc(c.group_name)}</span>` : ''}</span></div>`).join('')}
+    <p class="note">This is how your lecturers have you on their lists. If your name, section or group is wrong, tell your lecturer.</p></div>`;
+}
+const TIP = `<div class="tip">${QR_ICON}<span>Scan the QR code on your lecturer’s screen to check in.</span></div>`;
+
 async function viewReady(session) {
+  const email = session.user.email;
+  const paint = (rows, profile) => {
+    const rec = (profile && profile[0]) || (rows || []).find(r => r.surname) || null;   // as recorded on the lecturer's list
+    const name = rec ? fullName(rec) : email;
+    const num = (profile || []).map(p => p.student_number).find(Boolean);
+    const ini = rec ? ((rec.surname || '')[0] || '') + ((rec.first_name || '')[0] || '') : (email[0] || '?');
+    screen({
+      compact: true,
+      heroHtml: `<div class="me"><span class="av" aria-hidden="true">${esc(ini.toUpperCase())}</span><div><h1>${esc(name)}</h1><p>${esc(email)}${num ? ' · No. ' + esc(num) : ''}</p></div></div>`,
+      body: `${TIP}${rows === null ? '<p class="muted" style="margin-top:16px">Could not load your check-ins. Check your connection and open this page again.</p>' : historyHtml(rows)}${classesHtml(profile)}`
+    });
+    readyRefresh = load;
+  };
+  const load = async () => {
+    const my = viewId;
+    const [rows, profile] = await Promise.all([loadHistory(), loadProfile()]);
+    if (my !== viewId) return;   // the student moved on (for example scanned a code) while this was loading
+    paint(rows, profile);
+  };
   screen({
-    art: ART_PHONE,
-    title: 'You’re signed in',
-    sub: esc(session.user.email),
-    body: `<p>To check in, scan the QR code on your lecturer’s screen with your phone’s camera. You won’t need to sign in again on this phone.</p>
-      <div id="hist"></div>
-      <button class="btn ghost" id="rf" style="margin-top:12px">Refresh my check-ins</button>`
+    compact: true,
+    heroHtml: `<div class="me"><span class="av" aria-hidden="true">${esc((email[0] || '?').toUpperCase())}</span><div><h1>Welcome</h1><p>${esc(email)}</p></div></div>`,
+    body: `${TIP}<p class="muted" style="margin-top:16px">Loading your check-ins…</p>`
   });
-  const show = async () => { $('#hist').innerHTML = historyHtml(await loadHistory()); };
-  $('#rf').onclick = show;
-  show();
+  readyRefresh = load;
+  load();
 }
 function viewResult(kind, title, detail, sheetHtml = '', after = '') {
-  screen({
-    tone: kind,
-    art: icon(kind),
-    title,
-    sub: detail,
-    body: `${sheetHtml}${after}`
-  });
+  screen({ tone: kind, art: icon(kind), title, sub: detail, body: `${sheetHtml}${after}` });
 }
 
 async function checkIn(t, session) {
@@ -296,7 +361,7 @@ async function checkIn(t, session) {
     const rows = await loadHistory();
     const last = rows && rows[0];
     const name = last && last.surname ? fullName(last) : session.user.email;
-    const at = last ? new Date(last.checked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : time;
+    const at = last ? timeOnly(last.checked_at) : time;
     const ticket = `<div class="ticket"><div class="top">${last ? `<b>${esc(last.course_name)}</b><span>${esc(last.session_title || KIND[last.kind] || '')}</span>` : '<b>Check-in saved</b>'}</div>
       <div class="bot"><span>Recorded at</span><b>${esc(at)}</b></div></div>`;
     return viewResult('ok', 'Attendance recorded', esc(name), ticket, historyHtml(rows));
