@@ -38,12 +38,15 @@ input:focus-visible,button:focus-visible{outline:3px solid var(--amber);outline-
 @keyframes s{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}
 .hist{margin-top:16px;padding:18px}.hist h2{font-size:18px;margin:0 0 6px}.hrow{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:15px}.hrow small{display:block;color:var(--ink2)}.hrow>span:last-child{white-space:nowrap;color:var(--ink2)}
+footer{text-align:center;padding:0 16px calc(32px + env(safe-area-inset-bottom))}
+.link{font:inherit;font-size:14px;background:none;border:0;color:var(--ink2);text-decoration:underline;cursor:pointer;min-height:44px;padding:0 12px}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--bad);color:#fff;padding:12px 18px;border-radius:12px;max-width:90vw}
 </style>
 </head>
 <body>
-<header><b>Attendance</b><span id="who"></span></header>
+<header><b>Attendance</b></header>
 <main id="app"></main>
+<footer id="foot"></footer>
 <div id="toast" hidden role="status"></div>
 
 <script>
@@ -72,8 +75,8 @@ const ICONS = {
 async function step() {
   const { data: { session } } = await sb.auth.getSession();
   uid = session?.user?.id || null;
-  $('#who').innerHTML = session ? '<button id="out">Sign out</button>' : '';
-  if (session) $('#out').onclick = () => sb.auth.signOut();
+  $('#foot').innerHTML = session ? '<button id="out" class="link" type="button">Not you? Sign out</button>' : '';
+  if (session) $('#out').onclick = () => { if (confirm('Sign out? You will need a new email code to sign in again.')) sb.auth.signOut(); };
   if (!session) return viewLogin();
   if (token) {
     const t = token; token = null;
