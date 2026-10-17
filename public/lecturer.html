@@ -8,7 +8,7 @@
 <title>Lecturer attendance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -17,7 +17,7 @@
   --hero:#12343B;--ink:#12343B;--ink2:#4B6A70;
   --bg:#EAF0EF;--card:#fff;--field:#fff;--line:#D3DEDC;--hover:#F3F7F6;
   --amber:#E8A317;--ok:#1C7C54;--okbg:#E1F2E9;--okfg:#1C7C54;--bad:#B3402F;--badbg:#F9E5E1;--badfg:#B3402F;
-  --display:'Bricolage Grotesque','Atkinson Hyperlegible',system-ui,sans-serif;
+  --display:'Bricolage Grotesque','Figtree',system-ui,sans-serif;
 }
 @media (prefers-color-scheme:dark){
   :root{--hero:#0E2A30;--ink:#E8F1F0;--ink2:#9DB7BB;--bg:#081619;--card:#102329;--field:#173039;--line:#2B444B;--hover:#15303A;--okbg:#14392B;--okfg:#7FD6A8;--badbg:#3B1D19;--badfg:#F29C8E}
@@ -25,7 +25,7 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{background:var(--bg)}
-body{margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font:16px/1.5 'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif}
+body{margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font:16px/1.5 'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif}
 h1,h2{font-family:var(--display)}
 a{color:inherit}
 .muted{color:var(--ink2);margin:0}
@@ -48,7 +48,8 @@ a{color:inherit}
 .banner .wrap{position:relative}
 .banner h1{font-weight:800;font-size:clamp(28px,5vw,38px);line-height:1.1;margin:0 0 6px;text-wrap:balance}
 .banner p{margin:0;opacity:.85}
-.back{display:inline-block;margin-bottom:10px;font-size:15px;opacity:.85}
+.back{display:block;width:fit-content;margin:0 0 6px;padding:6px 0;font-size:15px;text-decoration:none;opacity:.85}
+.back::before{content:"\2039  ";font-size:1.3em;line-height:1}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .chips span{background:rgba(255,255,255,.12);border-radius:99px;padding:3px 14px;font-size:14px}
 .chips .live{background:var(--amber);color:#12343B;font-weight:700}
@@ -60,6 +61,12 @@ main.pad,.pad{padding-bottom:64px}
 /* ---------- panels ---------- */
 .panel{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;margin-bottom:20px}
 .panel.primary{border-top:5px solid var(--amber)}
+details.panel>summary{display:flex;align-items:center;gap:12px;cursor:pointer;list-style:none;min-height:34px}
+details.panel>summary::-webkit-details-marker{display:none}
+details.panel>summary h2{margin:0;flex:1}
+details.panel>summary::after{content:"";flex:none;width:9px;height:9px;border-right:2.5px solid var(--ink2);border-bottom:2.5px solid var(--ink2);transform:rotate(45deg);margin:-4px 4px 0 0;transition:transform .15s}
+details.panel[open]>summary::after{transform:rotate(-135deg);margin-top:4px}
+details.panel[open]>summary{margin-bottom:14px}
 .panel h2{font-weight:700;font-size:21px;margin:0 0 12px}
 .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
 @media(max-width:860px){.cols{grid-template-columns:1fr}}
@@ -67,6 +74,8 @@ main.pad,.pad{padding-bottom:64px}
 label{display:grid;gap:6px;font-weight:700;font-size:15px}
 input,select{font:inherit;font-weight:400;padding:10px 12px;border:2px solid var(--line);border-radius:12px;background:var(--field);color:var(--ink);min-height:46px;min-width:0}
 input:focus{border-color:var(--amber)}
+input[type=file]{padding:8px 10px;min-height:0}
+input[type=file]::file-selector-button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:9px 14px;margin-right:12px;background:var(--amber);color:#12343B;cursor:pointer}
 input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
 .btn{font:inherit;font-weight:700;padding:10px 18px;border-radius:12px;border:2px solid var(--amber);background:var(--amber);color:#12343B;cursor:pointer;min-height:46px}
 .btn.ghost{background:transparent;border-color:var(--line);color:var(--ink)}
@@ -80,15 +89,16 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{ou
 
 /* course tiles and lists */
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
-.tile{display:flex;align-items:center;gap:14px;padding:14px;border:2px solid var(--line);border-radius:16px;text-decoration:none;color:inherit;transition:border-color .15s,background .15s}
+.tile{display:flex;align-items:center;gap:14px;padding:14px;background:var(--card);border:2px solid var(--line);border-radius:16px;text-decoration:none;color:inherit;transition:border-color .15s,background .15s}
 .tile:hover{border-color:var(--amber);background:var(--hover)}
 .tile .ic{flex:none;width:48px;height:48px;border-radius:14px;display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:800;font-size:22px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
 .tile b{display:block;line-height:1.25}
 .tile .go{margin-left:auto;color:var(--ink2);flex:none}
-.list .item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 8px;border-top:1px solid var(--line);color:inherit;text-decoration:none;border-radius:10px}
+.list .item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 8px;border-top:1px solid var(--line);color:inherit;text-decoration:none}
 .list .item:first-child{border-top:0}
 .list .item:hover{background:var(--hover)}
 .item b{display:block}
+.item .muted{display:block;font-size:14px;line-height:1.35}
 .badge{display:inline-block;padding:2px 12px;border-radius:99px;font-size:14px;font-weight:700;white-space:nowrap}
 .badge.ok{background:var(--okbg);color:var(--okfg)}
 .badge.bad{background:var(--badbg);color:var(--badfg)}
@@ -147,16 +157,53 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{ou
 .sumrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0 16px}
 .tools{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .tools input{flex:1 1 200px}
-.tablewrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse}
-th{text-align:left;font-size:14px;color:var(--ink2);padding:8px;border-bottom:2px solid var(--line);white-space:nowrap}
-td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
-td small{display:block;color:var(--ink2)}
-.person{display:flex;align-items:center;gap:12px}
+.shead,.srow{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,.8fr) minmax(0,1.1fr) 130px;gap:12px;align-items:center}
+.shead{padding:8px;border-bottom:2px solid var(--line);font-size:14px;font-weight:700;color:var(--ink2)}
+.srow{padding:10px 8px;border-bottom:1px solid var(--line)}
+.srow small{display:block;color:var(--ink2);font-size:14px;line-height:1.35}
+.srow .grp{color:var(--ink2);font-size:15px}
+.srow .act{justify-self:end}
+.person{display:flex;align-items:center;gap:12px;min-width:0}
 .av{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:14px;background:var(--line);color:var(--ink2)}
 .av.here{background:var(--okbg);color:var(--okfg)}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--hero);color:#fff;padding:12px 18px;border-radius:14px;max-width:90vw;z-index:10;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 #toast.bad{background:var(--bad)}
+@media(max-width:600px){
+  .who span{display:none}
+  .banner{padding:8px 0 50px}
+  .banner.slim{padding-bottom:18px}
+  .banner h1{font-size:28px}
+  .chips{margin-top:10px;gap:6px}
+  .chips span{padding:2px 12px;font-size:13px}
+  .pull{margin-top:-34px}
+  .panel{padding:18px;border-radius:18px}
+  .panel.bare{background:none;border:0;padding:0;border-radius:0}
+  .panel h2{font-size:19px}
+  .tile{padding:12px}
+  .auth-hero{padding:16px 20px 50px;gap:6px}
+  .art{width:min(190px,52vw)}
+  .lead{font-size:26px;margin-top:4px}
+  .auth-hero .sub{display:none}
+  .auth-form{padding:24px 20px 32px}
+  .auth-card h1{font-size:28px}
+  .stage{padding:16px;gap:16px;border-radius:22px}
+  .count{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .big{font-size:56px}
+  .bigl{font-size:18px;margin:0}
+  .pbar{margin:12px 0 16px}
+  .actions .btn{flex:1 1 150px;padding:10px 12px}
+  .stage .note{font-size:13px}
+  .tools input[type=search]{flex:1 1 100%}
+  .tools select{flex:1 1 110px}
+  .tools .btn{flex:1 1 auto;padding:8px 12px;min-height:44px}
+  .shead{display:none}
+  .srow{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"person stat" "grp act";row-gap:6px}
+  .srow .person{grid-area:person}
+  .srow .stat{grid-area:stat;text-align:right}
+  .srow .grp{grid-area:grp}
+  .srow .act{grid-area:act}
+  .srow .grp:empty,.srow .act:empty{display:none}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -185,7 +232,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const app = $('#app');
 const KIND = { lecture: 'Lecture', td: 'TD', tp: 'TP' };
-const fmtDate = x => new Date(x).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+const fmtDate = x => { const d = new Date(x); return d.toLocaleString([], { day: 'numeric', month: 'short', ...(d.getFullYear() === new Date().getFullYear() ? {} : { year: 'numeric' }), hour: '2-digit', minute: '2-digit' }); };
 const fmtTime = x => new Date(x).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 const LOADING = '<div class="wrap gap"><p class="muted">Loading…</p></div>';
 const initials = r => (((r.surname || '')[0] || '') + ((r.first_name || '')[0] || '')).toUpperCase();
@@ -203,11 +250,11 @@ function toast(msg, bad) {
   const t = $('#toast'); t.textContent = msg; t.className = bad ? 'bad' : ''; t.hidden = false;
   clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, bad ? 6000 : 3500);
 }
-const sessionMeta = s => [KIND[s.kind], s.section && 'Section ' + s.section, s.group_name && 'Group ' + s.group_name, fmtDate(s.started_at)].filter(Boolean).join(', ');
+const sessionMeta = s => [KIND[s.kind], s.section && 'Section ' + s.section, s.group_name && 'Group ' + s.group_name, fmtDate(s.started_at)].filter(Boolean).join(' · ');
 
 /* coloured page banner; sub and extra are trusted HTML, everything user-made is escaped by the caller */
 function banner(title, sub = '', { back, slim, extra = '' } = {}) {
-  return `<div class="banner${slim ? ' slim' : ''}"><div class="wrap">${back ? `<a class="back" href="${back.href}">${esc(back.text)}</a><br>` : ''}
+  return `<div class="banner${slim ? ' slim' : ''}"><div class="wrap">${back ? `<a class="back" href="${back.href}">${esc(back.text)}</a>` : ''}
     <h1>${esc(title)}</h1>${sub ? `<p>${sub}</p>` : ''}${extra}</div></div>`;
 }
 
@@ -293,7 +340,7 @@ async function viewHome(my) {
   if (error) { app.innerHTML = `<div class="wrap gap"><p>Could not load your courses: ${esc(error.message)}</p></div>`; return; }
   app.innerHTML = `${banner('Your courses', 'Pick a course to start attendance or to manage its class list.')}
     <div class="wrap pull pad">
-    <section class="panel">${data.length ? `<div class="tiles">${data.map((c, i) => `
+    <section class="panel bare">${data.length ? `<div class="tiles">${data.map((c, i) => `
       <a class="tile" href="#/course/${c.id}"><span class="ic" style="background:${TONES[i % TONES.length]}">${esc((c.name || '?').trim().charAt(0).toUpperCase())}</span>
       <span><b>${esc(c.name)}</b>${c.code ? `<span class="muted">${esc(c.code)}</span>` : ''}</span>
       <svg class="go" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Open"><path d="M9 6l6 6-6 6"/></svg></a>`).join('')}</div>`
@@ -380,6 +427,7 @@ async function viewCourse(id, my) {
   const sections = uniq('section'), groups = uniq('group_name');
   const opts = (arr, all) => `<option value="">${all}</option>` + arr.map(x => `<option>${esc(x)}</option>`).join('');
   const sess = s.data || [];
+  const wide = matchMedia('(min-width:861px)').matches;
   const chips = `<div class="chips"><span>${total} ${total === 1 ? 'student' : 'students'}</span>${groups.length ? `<span>${groups.length} ${groups.length === 1 ? 'group' : 'groups'}</span>` : ''}<span>${sess.length} ${sess.length === 1 ? 'session' : 'sessions'}</span></div>`;
 
   app.innerHTML = `${banner(c.data.name, c.data.code ? esc(c.data.code) : '', { back: { href: '#/', text: 'Your courses' }, extra: chips })}
@@ -395,22 +443,27 @@ async function viewCourse(id, my) {
         ${total ? '' : '<p class="note">Upload your class list first.</p>'}
       </form></section>
 
-    <section class="panel"><h2>Past sessions</h2>${sess.length ? `<div class="list">${sess.map(x => `
-      <a class="item" href="#/session/${x.id}"><span><b>${esc(x.title || KIND[x.kind])}</b><span class="muted">${esc(sessionMeta(x))}</span></span>
-      <span class="badge ${x.closed_at ? 'idle' : 'ok'}">${x.closed_at ? 'Closed' : 'Open'}</span></a>`).join('')}</div>`
+    <section class="panel"><h2>Past sessions</h2>${sess.length ? `<div class="list">${sess.map((x, i) => `
+      <a class="item${i >= 5 ? ' more' : ''}" ${i >= 5 ? 'hidden' : ''} href="#/session/${x.id}"><span><b>${esc(x.title || KIND[x.kind])}</b><span class="muted">${esc(sessionMeta(x))}</span></span>
+      <span class="badge ${x.closed_at ? 'idle' : 'ok'}">${x.closed_at ? 'Closed' : 'Open'}</span></a>`).join('')}</div>${sess.length > 5 ? `<button class="btn ghost small" id="moreBtn" type="button" style="margin-top:10px">Show ${sess.length - 5} older</button>` : ''}`
       : '<div class="empty">No sessions yet. Start one above when your class begins.</div>'}</section>
 
     </div><div>
 
-    <section class="panel"><h2>Class list</h2>
-      <p class="muted" style="margin-bottom:14px">${total ? `${total} students${groups.length ? `, ${groups.length} groups` : ''}` : 'No students yet.'}</p>
+    <details class="panel" ${total === 0 || wide ? 'open' : ''}><summary><h2>Class list</h2><span class="muted">${total ? `${total} students` : 'No students yet'}</span></summary>
       <div class="row"><label>Upload your class list (Excel or CSV)<input id="csv" type="file" accept=".xlsx,.xls,.csv,text/csv"></label>
       <button class="btn ghost" id="tpl" type="button">Download template</button></div>
       <p class="note">Columns: surname, first_name, second_name, student_number, email, section, group. Uploading again updates existing students.</p>
-      <label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:12px"><input id="rep" type="checkbox" style="width:auto;min-height:0"> Replace the whole list instead of updating it</label></section>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:12px"><input id="rep" type="checkbox" style="width:auto;min-height:0"> Replace the whole list instead of updating it</label></details>
 
     </div></div></div>`;
 
+  const mb = $('#moreBtn');
+  if (mb) mb.onclick = () => {
+    const hide = !$('.item.more').hidden;
+    document.querySelectorAll('.item.more').forEach(el => { el.hidden = hide; });
+    mb.textContent = hide ? `Show ${sess.length - 5} older` : 'Show fewer';
+  };
   $('#kind').onchange = () => { $('#grp').hidden = $('#kind').value === 'lecture'; };
   $('#tpl').onclick = () => download('class_list_template.csv',
     '\uFEFFsurname,first_name,second_name,student_number,email,section,group\r\nBenali,Amine,Yacine,2026001,amine.benali@example.edu,A,1\r\n');
@@ -471,7 +524,7 @@ async function viewSession(id, my) {
     ${open ? '' : `<div class="closedstrip">Attendance closed at ${fmtTime(s.closed_at)}. You can still mark students present below.</div>`}
     <section class="stage" id="stage" ${open ? '' : 'hidden'}>
       <div class="qrcol"><div class="qr" id="qr"></div><div class="bar"><i id="fill"></i></div><p class="muted" id="cd" style="text-align:center">Preparing code…</p></div>
-      <div><p class="big" id="big">0</p><p class="bigl" id="bigl">checked in</p><div class="pbar"><i id="pfill"></i></div>
+      <div><div class="count"><p class="big" id="big">0</p><p class="bigl" id="bigl">checked in</p></div><div class="pbar"><i id="pfill"></i></div>
         <label class="rot">New code every <select id="rot">${[[15000, '15 seconds'], [30000, '30 seconds'], [60000, '1 minute'], [120000, '2 minutes'], [300000, '5 minutes']].map(([v, t]) => `<option value="${v}" ${v === rotateMs ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
         <div class="actions"><button class="btn ghost" id="fs">Show full screen</button><button class="btn danger" id="close">Close attendance</button></div>
         <p class="note tip">Students scan this code with their phone camera. It changes every <span id="rotTxt">${lbl(rotateMs)}</span>, so a screenshot stops working after that.</p></div>
@@ -481,7 +534,7 @@ async function viewSession(id, my) {
       <div class="tools"><input id="q" type="search" placeholder="Search by name or number" aria-label="Search students">
         <select id="flt" aria-label="Filter by status"><option value="all">Everyone</option><option value="present">Present</option><option value="absent">Absent</option></select>
         <button class="btn ghost" id="exp">Export Excel</button><button class="btn ghost" id="expcsv">CSV</button></div>
-      <div class="tablewrap"><table><thead><tr><th>Student</th><th>Group</th><th>Status</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+      <div class="shead"><span>Student</span><span>Group</span><span>Status</span><span></span></div><div id="rows"></div>
     </section></div>`;
 
   /* roster */
@@ -497,11 +550,11 @@ async function viewSession(id, my) {
       && (!q || `${r.surname} ${r.first_name} ${r.second_name || ''} ${r.student_number || ''}`.toLowerCase().includes(q)));
     $('#rows').innerHTML = list.length ? list.map(r => {
       const here = r.status !== 'absent';
-      return `<tr><td><div class="person"><span class="av ${here ? 'here' : ''}">${esc(initials(r))}</span><span><b>${esc(r.surname)}</b> ${esc(r.first_name)} ${esc(r.second_name || '')}${r.student_number ? `<small>${esc(r.student_number)}</small>` : ''}</span></div></td>
-        <td>${esc([r.section, r.group_name].filter(Boolean).join(' / '))}</td>
-        <td><span class="badge ${here ? 'ok' : 'bad'}">${here ? 'Present' : 'Absent'}</span>${here ? `<small>${fmtTime(r.checked_at)}${r.method === 'manual' ? ', marked by lecturer' : ''}</small>` : ''}</td>
-        <td>${here ? '' : `<button class="btn small ghost" data-mark="${esc(r.student_email)}">Mark present</button>`}</td></tr>`;
-    }).join('') : '<tr><td colspan="4" class="muted">No students match.</td></tr>';
+      return `<div class="srow"><div class="person"><span class="av ${here ? 'here' : ''}">${esc(initials(r))}</span><span><b>${esc(r.surname)}</b> ${esc(r.first_name)} ${esc(r.second_name || '')}${r.student_number ? `<small>${esc(r.student_number)}</small>` : ''}</span></div>
+        <div class="grp">${esc([r.section, r.group_name].filter(Boolean).join(' / '))}</div>
+        <div class="stat"><span class="badge ${here ? 'ok' : 'bad'}">${here ? 'Present' : 'Absent'}</span>${here ? `<small>${fmtTime(r.checked_at)}${r.method === 'manual' ? ', marked by lecturer' : ''}</small>` : ''}</div>
+        <div class="act">${here ? '' : `<button class="btn small ghost" data-mark="${esc(r.student_email)}">Mark present</button>`}</div></div>`;
+    }).join('') : '<p class="muted" style="padding:12px 8px">No students match.</p>';
   };
   const loadRoster = async () => {
     const { data, error } = await sb.rpc('session_roster', { p_session: id });
